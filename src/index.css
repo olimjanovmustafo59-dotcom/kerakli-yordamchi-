@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    border-color: var(--color-slate-200);
+  }
+  .dark * {
+    border-color: var(--color-slate-800);
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+
+.font-caveat { font-family: 'Caveat', cursive; }
+.font-dancing { font-family: 'Dancing Script', cursive; }
+.font-pacifico { font-family: 'Pacifico', cursive; }
+.font-great-vibes { font-family: 'Great Vibes', cursive; }
+.font-alex-brush { font-family: 'Alex Brush', cursive; }
+.font-cinzel { font-family: 'Cinzel', serif; }
+.font-playfair { font-family: 'Playfair Display', serif; }
+.font-jetbrains { font-family: 'JetBrains Mono', monospace; }
+.font-montserrat { font-family: 'Montserrat', sans-serif; }
+
