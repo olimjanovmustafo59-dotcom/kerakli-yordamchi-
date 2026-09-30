@@ -37,6 +37,8 @@ export const DocumentAI: React.FC = () => {
   const [isUnderline, setIsUnderline] = useState(false);
   const [lineHeight, setLineHeight] = useState<number>(1.6);
   const [copied, setCopied] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -45,6 +47,8 @@ export const DocumentAI: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setStatusMessage(null);
+    setErrorMessage(null);
     setFileName(file.name);
     const extension = file.name.split('.').pop()?.toLowerCase();
 
@@ -52,16 +56,19 @@ export const DocumentAI: React.FC = () => {
       if (extension === 'txt' || extension === 'rtf' || extension === 'md') {
         const text = await file.text();
         setContent(text);
+        setStatusMessage(`"${file.name}" matni muvaffaqiyatli yuklandi.`);
       } else if (extension === 'docx') {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
         setContent(result.value);
+        setStatusMessage(`DOCX hujjatdan ${result.value.length} belgi o'qildi.`);
       } else if (extension === 'pdf') {
         // PDF text extraction using OCR backend
         const reader = new FileReader();
         reader.onload = async (ev) => {
           const base64 = ev.target?.result as string;
           setIsProcessingAI(true);
+          setStatusMessage("PDF tahlil qilinmoqda...");
           try {
             const res = await fetch('/api/ai/ocr', {
               method: 'POST',
@@ -73,9 +80,12 @@ export const DocumentAI: React.FC = () => {
               }),
             });
             const data = await res.json();
-            if (data.text) setContent(data.text);
+            if (data.text) {
+              setContent(data.text);
+              setStatusMessage("PDF dan matn muvaffaqiyatli ajratildi!");
+            }
           } catch {
-            alert("PDF matnini ajratishda xatolik");
+            setErrorMessage("PDF matnini ajratishda xatolik yuz berdi.");
           } finally {
             setIsProcessingAI(false);
           }
@@ -87,6 +97,7 @@ export const DocumentAI: React.FC = () => {
         reader.onload = async (ev) => {
           const base64 = ev.target?.result as string;
           setIsProcessingAI(true);
+          setStatusMessage("Rasmdagi matn aniqlanmoqda...");
           try {
             const res = await fetch('/api/ai/ocr', {
               method: 'POST',
@@ -98,9 +109,12 @@ export const DocumentAI: React.FC = () => {
               }),
             });
             const data = await res.json();
-            if (data.text) setContent(data.text);
+            if (data.text) {
+              setContent(data.text);
+              setStatusMessage("Rasmdan matn o'qildi!");
+            }
           } catch {
-            alert("Rasmdagi matnni aniqlashda xatolik");
+            setErrorMessage("Rasmdagi matnni aniqlashda xatolik.");
           } finally {
             setIsProcessingAI(false);
           }
@@ -108,14 +122,16 @@ export const DocumentAI: React.FC = () => {
         reader.readAsDataURL(file);
       }
     } catch (err: any) {
-      alert("Faylni o'qishda xatolik: " + err.message);
+      setErrorMessage("Faylni o'qishda xatolik: " + err.message);
     }
   };
 
   // Trigger Gemini AI actions
   const runAIAction = async (action: 'correct' | 'shorten' | 'expand' | 'formal' | 'simple' | 'professional' | 'grammar') => {
+    setStatusMessage(null);
+    setErrorMessage(null);
     if (!content.trim()) {
-      alert("Iltimos, tahrirlash uchun matn kiriting yoki hujjat yuklang.");
+      setErrorMessage("Iltimos, tahrirlash uchun matn kiriting yoki hujjat yuklang.");
       return;
     }
 
@@ -130,11 +146,12 @@ export const DocumentAI: React.FC = () => {
       const data = await res.json();
       if (res.ok && data.result) {
         setContent(data.result);
+        setStatusMessage("Matn sun'iy intellekt tomonidan muvaffaqiyatli tahrirlandi!");
       } else {
-        alert(data.error || "AI so'rovida xatolik yuz berdi");
+        setErrorMessage(data.error || "AI so'rovida xatolik yuz berdi");
       }
     } catch (err: any) {
-      alert("Aloqa xatosi: " + err.message);
+      setErrorMessage("Aloqa xatosi: " + err.message);
     } finally {
       setIsProcessingAI(false);
       setActiveAIAction('');
@@ -192,6 +209,20 @@ export const DocumentAI: React.FC = () => {
           imlo va grammatik xatolarni tuzatish, rasmiy yoki sodda uslubga o'girish.
         </p>
       </div>
+
+      {statusMessage && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span>{statusMessage}</span>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {/* Editor & AI Tools Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

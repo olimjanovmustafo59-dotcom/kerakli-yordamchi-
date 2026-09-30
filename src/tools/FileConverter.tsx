@@ -27,6 +27,7 @@ export const FileConverter: React.FC = () => {
   const [convertedResult, setConvertedResult] = useState<string | null>(null);
   const [isConverting, setIsConverting] = useState<boolean>(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -35,6 +36,7 @@ export const FileConverter: React.FC = () => {
     setSelectedFile(file);
     setConvertedResult(null);
     setSuccessMsg(null);
+    setErrorMsg(null);
 
     const reader = new FileReader();
     if (convertType === 'csv_to_json' || convertType === 'json_to_csv' || convertType === 'txt_to_pdf') {
@@ -127,7 +129,7 @@ export const FileConverter: React.FC = () => {
         img.src = fileDataUrl;
       }
     } catch (err: any) {
-      alert("Konvertatsiya qilishda xatolik: " + err.message);
+      setErrorMsg("Konvertatsiya qilishda xatolik: " + err.message);
     } finally {
       setIsConverting(false);
     }
@@ -146,6 +148,13 @@ export const FileConverter: React.FC = () => {
           JPG, PNG, WEBP, PDF, TXT, CSV va JSON formatlarini o'zaro birzumda konvertatsiya qilish.
         </p>
       </div>
+
+      {errorMsg && (
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-7 space-y-4">

@@ -81,6 +81,7 @@ export const QRCodePro: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'content' | 'design' | 'logo'>('content');
   const [scanResult, setScanResult] = useState<QRScanTestResult>({ isScannable: true });
   const [isRendering, setIsRendering] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Compile full string to encode based on current tab
@@ -271,10 +272,11 @@ export const QRCodePro: React.FC = () => {
 
   // Handle Logo Upload
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoError(null);
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("Logo fayl hajmi 2MB dan kichik bo'lishi kerak.");
+        setLogoError("Logo fayl hajmi 2MB dan kichik bo'lishi kerak.");
         return;
       }
       const reader = new FileReader();
@@ -333,8 +335,8 @@ export const QRCodePro: React.FC = () => {
       link.href = url;
       link.click();
       URL.revokeObjectURL(url);
-    } catch (e) {
-      alert("SVG yaratishda xatolik yuz berdi");
+    } catch (e: any) {
+      setLogoError("SVG yaratishda xatolik: " + e.message);
     }
   };
 
@@ -900,6 +902,12 @@ export const QRCodePro: React.FC = () => {
                     </button>
                   )}
                 </div>
+
+                {logoError && (
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+                    {logoError}
+                  </div>
+                )}
 
                 {config.logoUrl && (
                   <div>

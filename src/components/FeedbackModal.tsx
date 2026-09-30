@@ -13,6 +13,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, o
   const [category, setCategory] = useState('Fikr yoki taklif');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -21,6 +22,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, o
     if (!message.trim()) return;
 
     setLoading(true);
+    setFormError(null);
     try {
       const res = await fetch('/api/admin/feedback', {
         method: 'POST',
@@ -30,13 +32,14 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, o
       if (res.ok) {
         onSuccess("Fikringiz uchun tashakkur! Admin jamoasi uni ko'rib chiqadi.");
         setMessage('');
+        setFormError(null);
         onClose();
       } else {
         const data = await res.json();
-        alert(data.error || "Fikr yuborishda xatolik yuz berdi");
+        setFormError(data.error || "Fikr yuborishda xatolik yuz berdi");
       }
     } catch {
-      alert("Aloqa xatosi. Iltimos qayta urinib ko'ring.");
+      setFormError("Aloqa xatosi. Iltimos qayta urinib ko'ring.");
     } finally {
       setLoading(false);
     }
@@ -63,6 +66,12 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, o
             </p>
           </div>
         </div>
+
+        {formError && (
+          <div className="mb-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+            {formError}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

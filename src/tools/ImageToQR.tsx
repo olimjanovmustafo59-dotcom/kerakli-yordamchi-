@@ -20,35 +20,60 @@ export const ImageToQR: React.FC = () => {
   const [mode, setMode] = useState<'compressed_data' | 'url'>('url');
   const [customUrl, setCustomUrl] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const QR_BYTE_LIMIT = 2950; // Maximum byte capacity for QR Version 40 (Binary)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setErrorNotice(null);
     setImageSize(file.size);
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
       setSelectedImage(dataUrl);
 
       // Measure dimensions
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         setImageDimensions({ w: img.width, h: img.height });
-        // If small enough, default to compressed data, otherwise advise URL
+
+        // If file is tiny, can embed directly; otherwise upload to backend hosting for real public URL
         if (file.size <= QR_BYTE_LIMIT) {
           setMode('compressed_data');
           generateQR(dataUrl);
         } else {
           setMode('url');
-          // Create an object URL or prompt for hosting link
-          const blobUrl = URL.createObjectURL(file);
-          setCustomUrl(blobUrl);
-          generateQR(blobUrl);
+          // Upload to backend hosting to get real accessible URL
+          setIsUploading(true);
+          try {
+            const uploadRes = await fetch('/api/upload/image', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                imageBase64: dataUrl,
+                filename: file.name,
+              }),
+            });
+            const uploadJson = await uploadRes.json();
+            if (uploadJson.url) {
+              const fullUrl = window.location.origin + uploadJson.url;
+              setCustomUrl(fullUrl);
+              generateQR(fullUrl);
+            } else {
+              throw new Error("Havola yaratishda xatolik");
+            }
+          } catch {
+            // Fallback to local data micro-compression
+            compressToFitQR();
+          } finally {
+            setIsUploading(false);
+          }
         }
       };
       img.src = dataUrl;
@@ -60,6 +85,7 @@ export const ImageToQR: React.FC = () => {
   const compressToFitQR = () => {
     if (!selectedImage) return;
     setIsCompressing(true);
+    setErrorNotice(null);
 
     const img = new Image();
     img.onload = () => {
@@ -83,6 +109,7 @@ export const ImageToQR: React.FC = () => {
   };
 
   const generateQR = async (valueToEncode: string) => {
+    setErrorNotice(null);
     try {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -98,7 +125,7 @@ export const ImageToQR: React.FC = () => {
       setQrCodeUrl(canvas.toDataURL());
     } catch (err: any) {
       console.error(err);
-      alert("QR yaratishda xatolik: Ma'lumot hajmi QR xalqaro standartidan oshib ketdi.");
+      setErrorNotice("QR yaratishda xatolik: Ma'lumot hajmi QR xalqaro standartidan oshib ketdi. Iltimos, havola variantidan foydalaning.");
     }
   };
 
@@ -264,9 +291,16 @@ export const ImageToQR: React.FC = () => {
 
                   {mode === 'url' && (
                     <div className="pt-2">
-                      <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                        Rasm veb-havolasi (yoki avtomatik yaratilgan havola)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                          Rasm veb-havolasi (avtomatik serverda xavfsiz saqlangan)
+                        </label>
+                        {isUploading && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold animate-pulse">
+                            Yuklanmoqda...
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="url"
                         value={customUrl}
@@ -274,6 +308,12 @@ export const ImageToQR: React.FC = () => {
                         placeholder="https://mysite.uz/rasm.jpg"
                         className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none"
                       />
+                    </div>
+                  )}
+
+                  {errorNotice && (
+                    <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+                      {errorNotice}
                     </div>
                   )}
                 </div>

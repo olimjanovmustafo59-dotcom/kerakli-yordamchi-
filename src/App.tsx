@@ -33,6 +33,7 @@ import {
   getStoredTheme,
   setStoredTheme
 } from './utils/storage';
+import { sendVisitHeartbeat } from './utils/analytics';
 import { ChevronRight, Home, ArrowLeft } from 'lucide-react';
 
 export default function App() {
@@ -46,7 +47,7 @@ export default function App() {
   const [recentTools, setRecentTools] = useState<string[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Initialize theme, favorites, recent
+  // Initialize theme, favorites, recent, and analytics
   useEffect(() => {
     const savedTheme = getStoredTheme();
     setTheme(savedTheme);
@@ -54,7 +55,24 @@ export default function App() {
 
     setFavorites(getFavoriteTools());
     setRecentTools(getRecentTools());
+
+    // Initial visit tracking
+    sendVisitHeartbeat('home', 'Bosh sahifa');
+
+    // Heartbeat every 35 seconds to keep online status active
+    const heartbeatTimer = setInterval(() => {
+      const activeDef = TOOLS_LIST.find((t) => t.id === activeToolId);
+      sendVisitHeartbeat(activeToolId, activeDef ? activeDef.name : 'Bosh sahifa');
+    }, 35000);
+
+    return () => clearInterval(heartbeatTimer);
   }, []);
+
+  // Track tool change in analytics
+  useEffect(() => {
+    const activeDef = TOOLS_LIST.find((t) => t.id === activeToolId);
+    sendVisitHeartbeat(activeToolId, activeDef ? activeDef.name : 'Bosh sahifa');
+  }, [activeToolId]);
 
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';

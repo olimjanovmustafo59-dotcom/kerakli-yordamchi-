@@ -111,25 +111,34 @@ export const TextTools: React.FC = () => {
     }
   };
 
+  const [toolError, setToolError] = useState<string | null>(null);
+
   const encodeBase64 = () => {
+    setToolError(null);
     try {
       setText(btoa(unescape(encodeURIComponent(text))));
     } catch (e: any) {
-      alert("Base64 kodlashda xatolik: " + e.message);
+      setToolError("Base64 kodlashda xatolik: " + e.message);
     }
   };
 
   const decodeBase64 = () => {
+    setToolError(null);
     try {
       setText(decodeURIComponent(escape(atob(text))));
     } catch (e: any) {
-      alert("Base64 dekodlashda xatolik: Matn to'g'ri Base64 emas");
+      setToolError("Base64 dekodlashda xatolik: Matn to'g'ri Base64 formatda emas");
     }
   };
 
   const encodeURL = () => setText(encodeURIComponent(text));
   const decodeURL = () => {
-    try { setText(decodeURIComponent(text)); } catch { alert("URL noto'g'ri"); }
+    setToolError(null);
+    try {
+      setText(decodeURIComponent(text));
+    } catch {
+      setToolError("URL formati noto'g'ri, dekodlab bo'lmadi");
+    }
   };
 
   const generateLorem = () => {
@@ -184,6 +193,13 @@ export const TextTools: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {toolError && (
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span>{toolError}</span>
+        </div>
+      )}
 
       {/* SUBTOOL 1: STATS & CASE */}
       {activeSub === 'stats_case' && (

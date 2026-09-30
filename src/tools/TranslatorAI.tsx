@@ -43,14 +43,14 @@ export const TranslatorAI: React.FC = () => {
   const [confidencePercent, setConfidencePercent] = useState<number>(0);
   const [notes, setNotes] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleTranslate = async () => {
     if (!sourceText.trim()) return;
 
     setIsLoading(true);
-    setErrorMsg(null);
+    setErrorMessage(null);
     try {
       const res = await fetch('/api/ai/translate', {
         method: 'POST',
@@ -69,11 +69,12 @@ export const TranslatorAI: React.FC = () => {
         setDetectedSource(data.detectedSource || sourceLang);
         setConfidencePercent(data.confidencePercent || 94);
         setNotes(data.notes || '');
+        setErrorMessage(null);
       } else {
-        setErrorMsg(data.error || "Tarjimada xatolik yuz berdi");
+        setErrorMessage(data.error || "Tarjimada xatolik yuz berdi");
       }
     } catch (err: any) {
-      setErrorMsg("Aloqa xatosi: " + err.message);
+      setErrorMessage("Aloqa xatosi: " + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +118,7 @@ export const TranslatorAI: React.FC = () => {
               setSourceText(ocrData.text);
             }
           } catch {
-            alert("Rasm matnini o'qishda xatolik");
+            setErrorMessage("Rasm matnini o'qishda xatolik yuz berdi");
           } finally {
             setIsLoading(false);
           }
@@ -128,7 +129,7 @@ export const TranslatorAI: React.FC = () => {
         setSourceText(text);
       }
     } catch (err: any) {
-      alert("Faylni o'qishda xatolik: " + err.message);
+      setErrorMessage("Faylni o'qishda xatolik: " + err.message);
     }
   };
 
@@ -162,6 +163,13 @@ export const TranslatorAI: React.FC = () => {
           Hech qachon asossiz "100% xatosiz" deb da'vo qilmaydi; noaniq joylar belgilab ko'rsatiladi.
         </p>
       </div>
+
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {/* Language Bar & Style Mode */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm space-y-3">
@@ -332,13 +340,6 @@ export const TranslatorAI: React.FC = () => {
             <span className="font-bold">Kontekstual izoh yoki noaniqlik:</span>
             <p className="mt-0.5 leading-relaxed">{notes}</p>
           </div>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-          <span>{errorMsg}</span>
         </div>
       )}
     </div>
