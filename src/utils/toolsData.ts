@@ -87,12 +87,12 @@ export const TOOLS_LIST: ToolDefinition[] = [
   },
   {
     id: 'font_studio',
-    name: 'Handwriting / Font Studio',
-    shortDesc: 'Qo\'lyozma, imzo uslubi va zamonaviy kreativ shriftlarda matn yaratish va eksport',
+    name: 'Shaxsiy Imzo & Font Studio',
+    shortDesc: 'Ism yoki so\'z uchun yagona unikal imzo tavsiyasi, qo\'lda mashq qilish va zamonaviy shriftlar',
     category: 'documents',
     iconName: 'PenTool',
-    badge: 'Kreativ',
-    tags: ['shrift', 'font', 'imzo', 'handwriting', 'yozuv', 'signature', 'qo\'lyozma'],
+    badge: 'Unikal Imzo',
+    tags: ['imzo', 'signature', 'shaxsiy imzo', 'shrift', 'font', 'handwriting', 'yozuv', 'mashq', 'qo\'lyozma'],
   },
   {
     id: 'file_converter',
