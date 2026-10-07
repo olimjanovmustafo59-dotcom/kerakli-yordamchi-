@@ -89,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Qidirish: 'QR', 'PDF', 'telefon', 'kalkulyator'..."
+              placeholder="Qidirish: 'QR', 'PDF', 'telefon', 'noutbuk'..."
               className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-transparent focus:border-indigo-500/50 dark:focus:border-indigo-500/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition"
             />
             {searchQuery && (

@@ -18,19 +18,18 @@ import {
   CheckCircle2,
   AlertCircle,
   Wand2,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 
 export const DocumentAI: React.FC = () => {
-  const [content, setContent] = useState<string>(
-    `SmartTools AI Platformasi haqida hisobot.\n\nUshbu loyiha zamonaviy web texnologiyalari va sun'iy intellekt vositalarini birlashtirgan ko'p funksiyali tizimdir. Foydalanuvchilar hujjatlarni tahrirlashi, imlo va uslubiy xatolarni sun'iy intellekt orqali bartaraf etishi mumkin.`
-  );
+  const [content, setContent] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
   const [isProcessingAI, setIsProcessingAI] = useState<boolean>(false);
   const [activeAIAction, setActiveAIAction] = useState<string>('');
   const [fontSize, setFontSize] = useState<number>(15);
   const [fontFamily, setFontFamily] = useState<string>('sans-serif');
-  const [textColor, setTextColor] = useState<string>('#0f172a');
+  const [customTextColor, setCustomTextColor] = useState<string | null>(null);
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right' | 'justify'>('left');
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
@@ -41,6 +40,21 @@ export const DocumentAI: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Clear text
+  const handleClear = () => {
+    setContent('');
+    setFileName('');
+    setStatusMessage("Matn tozalandi.");
+  };
+
+  // Load sample text
+  const handleLoadSample = () => {
+    setContent(
+      `SmartTools AI Platformasi haqida hisobot.\n\nUshbu loyiha zamonaviy web texnologiyalari va sun'iy intellekt vositalarini birlashtirgan ko'p funksiyali tizimdir. Foydalanuvchilar hujjatlarni tahrirlashi, imlo va uslubiy xatolarni sun'iy intellekt orqali bartaraf etishi mumkin.`
+    );
+    setStatusMessage("Namuna matn yuklandi.");
+  };
 
   // File Upload handler
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,12 +329,12 @@ export const DocumentAI: React.FC = () => {
                 </button>
               </div>
 
-              {/* Font settings */}
-              <div className="flex items-center gap-2">
+              {/* Font settings & Actions */}
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={fontFamily}
                   onChange={(e) => setFontFamily(e.target.value)}
-                  className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                  className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs"
                 >
                   <option value="sans-serif">Inter (Sans)</option>
                   <option value="'Playfair Display', serif">Playfair (Serif)</option>
@@ -329,24 +343,60 @@ export const DocumentAI: React.FC = () => {
                 </select>
 
                 <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-slate-500">O'lcham:</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">O'lcham:</span>
                   <input
                     type="number"
                     min="11"
                     max="28"
                     value={fontSize}
                     onChange={(e) => setFontSize(Number(e.target.value))}
-                    className="w-12 p-1 text-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs"
+                    className="w-12 p-1 text-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs"
                   />
                 </div>
 
-                <input
-                  type="color"
-                  value={textColor}
-                  onChange={(e) => setTextColor(e.target.value)}
-                  className="w-7 h-7 rounded border cursor-pointer"
-                  title="Matn rangi"
-                />
+                <div className="flex items-center gap-1">
+                  <input
+                    type="color"
+                    value={customTextColor || '#6366f1'}
+                    onChange={(e) => setCustomTextColor(e.target.value)}
+                    className="w-7 h-7 rounded border border-slate-300 dark:border-slate-700 cursor-pointer"
+                    title="Matn rangini tanlash"
+                  />
+                  {customTextColor && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomTextColor(null)}
+                      className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
+                      title="Avtomatik mavzu rangiga qaytarish"
+                    >
+                      Asl rang
+                    </button>
+                  )}
+                </div>
+
+                <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1 hidden sm:block" />
+
+                {/* Sample and Clear buttons */}
+                <button
+                  type="button"
+                  onClick={handleLoadSample}
+                  className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-medium text-slate-600 dark:text-slate-300 transition"
+                  title="Namuna matn yuklash"
+                >
+                  Namuna
+                </button>
+
+                {content && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-[11px] font-semibold transition"
+                    title="Matnni tozalash"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Tozalash
+                  </button>
+                )}
               </div>
             </div>
 
@@ -357,18 +407,18 @@ export const DocumentAI: React.FC = () => {
                 rows={16}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Bu yerga hujjat matnini yozing yoki fayl yuklang..."
+                placeholder="Bu yerga hujjat matnini yozing yoki o'ng tomondan fayl (PDF, Word, TXT, Rasm) yuklang..."
                 style={{
                   fontSize: `${fontSize}px`,
                   fontFamily: fontFamily,
-                  color: textColor,
+                  ...(customTextColor ? { color: customTextColor } : {}),
                   textAlign: textAlign,
                   fontWeight: isBold ? 'bold' : 'normal',
                   fontStyle: isItalic ? 'italic' : 'normal',
                   textDecoration: isUnderline ? 'underline' : 'none',
                   lineHeight: lineHeight,
                 }}
-                className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 focus:ring-2 focus:ring-indigo-500/20 outline-none resize-y min-h-[380px]"
+                className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/20 outline-none resize-y min-h-[380px] leading-relaxed transition"
               />
 
               {isProcessingAI && (
@@ -382,16 +432,26 @@ export const DocumentAI: React.FC = () => {
             </div>
 
             {/* Editor Stats Footer */}
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-4">
-                <span>So'zlar: {content.trim() ? content.trim().split(/\s+/).length : 0}</span>
-                <span>Belgilar: {content.length}</span>
-                {fileName && <span className="text-indigo-600 truncate max-w-xs font-medium">Fayl: {fileName}</span>}
+                <span>So'zlar: <strong className="text-slate-700 dark:text-slate-300">{content.trim() ? content.trim().split(/\s+/).length : 0}</strong></span>
+                <span>Belgilar: <strong className="text-slate-700 dark:text-slate-300">{content.length}</strong></span>
+                {fileName && <span className="text-indigo-600 dark:text-indigo-400 truncate max-w-xs font-medium">Fayl: {fileName}</span>}
               </div>
               <div className="flex items-center gap-2">
+                {content && (
+                  <button
+                    onClick={handleClear}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-slate-400" />
+                    Tozalash
+                  </button>
+                )}
                 <button
                   onClick={copyToClipboard}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  disabled={!content}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-700 dark:text-slate-300 text-xs font-medium"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                   {copied ? 'Nusxalandi' : 'Nusxalash'}

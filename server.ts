@@ -159,8 +159,8 @@ const visitorSessions: VisitorSession[] = [
     browser: 'Firefox 123',
     os: 'macOS Sonoma',
     screen: '1728x1117',
-    currentToolId: 'calculator',
-    currentToolName: 'Universal Kalkulyator',
+    currentToolId: 'device_advisor',
+    currentToolName: 'Telefon & Noutbuk Maslahatchisi',
     firstSeen: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
     lastActive: Date.now() - 1000 * 60 * 55,
     pageViews: 12,
@@ -187,11 +187,10 @@ const toolUsageMap: Record<string, number> = {
   qr_pro: 284,
   pdf_tools: 247,
   doc_ai: 198,
+  device_advisor: 182,
   ocr: 176,
   translator: 164,
-  device_advisor: 142,
   image_editor: 129,
-  calculator: 118,
   barcode: 95,
   font_studio: 83,
   file_converter: 78,
@@ -423,12 +422,12 @@ app.get('/api/admin/analytics', (req, res) => {
   const toolNameMap: Record<string, string> = {
     qr_pro: 'QR Code Pro',
     pdf_tools: 'PDF Tools',
+    resume_builder: 'Rezyume / CV Yaratuvchi',
     doc_ai: 'Document AI',
     ocr: 'OCR Matn Aniqlash',
     translator: 'Translator AI',
     device_advisor: 'Telefon & Noutbuk Tavsiyasi',
     image_editor: 'Image Editor Pro',
-    calculator: 'Universal Kalkulyator',
     barcode: 'Barcode Generator',
     font_studio: 'Font Studio',
     file_converter: 'File Converter',
@@ -583,6 +582,15 @@ app.post('/api/admin/clear-logs', (req, res) => {
   res.json({ success: true });
 });
 
+function escapeHtml(str: string): string {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // 6. Image Hosting for ImageToQR and sharing
 app.post('/api/upload/image', (req, res) => {
   try {
@@ -618,12 +626,14 @@ app.post('/api/upload/image', (req, res) => {
     }
 
     const publicUrl = `/api/files/${fileId}`;
+    const viewUrl = `/v/${fileId}`;
     logActivity('Rasm Yuklash', 'success', `Hajm: ${(buffer.length / 1024).toFixed(1)} KB`);
 
     res.json({
       success: true,
       fileId,
       url: publicUrl,
+      viewUrl,
       sizeBytes: buffer.length,
       mimeType,
     });
@@ -632,11 +642,230 @@ app.post('/api/upload/image', (req, res) => {
   }
 });
 
-// 7. Serve hosted image file
+// 7. Interactive HTML Image Viewer for scanned QR codes
+app.get(['/v/:id', '/view/image/:id'], (req, res) => {
+  const item = hostedImages.get(req.params.id);
+  if (!item) {
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html lang="uz">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Rasm topilmadi | SmartTools AI</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; }
+          .card { background: #1e293b; padding: 32px; border-radius: 20px; border: 1px solid #334155; max-width: 400px; }
+          a { display: inline-block; margin-top: 16px; padding: 10px 20px; background: #6366f1; color: #fff; text-decoration: none; border-radius: 12px; font-weight: 600; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h2>⚠️ Rasm topilmadi</h2>
+          <p>Ushbu rasm serverda topilmadi yoki muddati o'tgan.</p>
+          <a href="/">SmartTools Platformasiga qaytish</a>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+
+  const sizeKb = ((item.size || item.buffer.length) / 1024).toFixed(1);
+  const dateStr = item.uploadedAt ? new Date(item.uploadedAt).toLocaleString('uz-UZ') : '';
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="uz">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${escapeHtml(item.filename)} | SmartTools AI Rasm</title>
+      <meta name="description" content="QR kod orqali yuborilgan rasm. Hajmi: ${sizeKb} KB.">
+      <meta property="og:title" content="${escapeHtml(item.filename)}">
+      <meta property="og:image" content="/api/files/${req.params.id}?raw=1">
+      <style>
+        * { box-sizing: border-box; }
+        body {
+          margin: 0;
+          min-height: 100vh;
+          background: #090d16;
+          color: #f1f5f9;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 16px;
+        }
+        .header {
+          width: 100%;
+          max-width: 720px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 0 20px;
+        }
+        .brand {
+          font-weight: 800;
+          font-size: 18px;
+          background: linear-gradient(135deg, #6366f1, #38bdf8);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          text-decoration: none;
+        }
+        .badge {
+          font-size: 11px;
+          padding: 4px 10px;
+          background: rgba(16, 185, 129, 0.15);
+          color: #34d399;
+          border-radius: 20px;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          font-weight: 600;
+        }
+        .main-card {
+          width: 100%;
+          max-width: 720px;
+          background: #111827;
+          border: 1px solid #1f2937;
+          border-radius: 24px;
+          overflow: hidden;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+          display: flex;
+          flex-direction: column;
+        }
+        .image-wrapper {
+          background: #030712;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          min-height: 300px;
+          max-height: 75vh;
+          overflow: hidden;
+        }
+        .image-wrapper img {
+          max-width: 100%;
+          max-height: 70vh;
+          object-fit: contain;
+          border-radius: 12px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+          cursor: zoom-in;
+        }
+        .meta-bar {
+          padding: 20px 24px;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          background: #111827;
+          border-top: 1px solid #1f2937;
+        }
+        .file-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .file-name {
+          font-size: 15px;
+          font-weight: 700;
+          color: #f8fafc;
+          word-break: break-all;
+        }
+        .file-sub {
+          font-size: 12px;
+          color: #94a3b8;
+        }
+        .actions {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .btn-download {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 18px;
+          background: #059669;
+          color: #ffffff;
+          font-size: 13px;
+          font-weight: 600;
+          border-radius: 12px;
+          text-decoration: none;
+          box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+          transition: background 0.15s;
+        }
+        .btn-download:hover {
+          background: #047857;
+        }
+        .btn-secondary {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 16px;
+          background: #1f2937;
+          color: #cbd5e1;
+          font-size: 13px;
+          font-weight: 600;
+          border-radius: 12px;
+          text-decoration: none;
+          border: 1px solid #374151;
+        }
+        .btn-secondary:hover {
+          background: #374151;
+          color: #fff;
+        }
+        .footer-text {
+          margin-top: 24px;
+          font-size: 12px;
+          color: #64748b;
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <a href="/" class="brand">SmartTools AI</a>
+        <span class="badge">📸 QR orqali uzatilgan rasm</span>
+      </div>
+
+      <div class="main-card">
+        <div class="image-wrapper">
+          <a href="/api/files/${req.params.id}?raw=1" target="_blank" title="Rasmni to'liq ekranda ochish">
+            <img src="/api/files/${req.params.id}?raw=1" alt="${escapeHtml(item.filename)}" />
+          </a>
+        </div>
+        <div class="meta-bar">
+          <div class="file-info">
+            <div class="file-name">${escapeHtml(item.filename)}</div>
+            <div class="file-sub">Hajmi: ${sizeKb} KB • Format: ${item.mimeType.replace('image/', '').toUpperCase()} • ${dateStr}</div>
+          </div>
+          <div class="actions">
+            <a href="/api/files/${req.params.id}?raw=1" download="${escapeHtml(item.filename)}" class="btn-download">
+              ⬇ Rasmni saqlab olish
+            </a>
+            <a href="/api/files/${req.params.id}?raw=1" target="_blank" class="btn-secondary">
+              🔍 Asl hajmda ko'rish
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <p class="footer-text">Ushbu rasm SmartTools platformasi orqali QR kodga biriktirilgan • 100% xavfsiz</p>
+    </body>
+    </html>
+  `);
+});
+
+// 8. Serve raw hosted image file
 app.get('/api/files/:id', (req, res) => {
   const item = hostedImages.get(req.params.id);
   if (!item) {
     return res.status(404).send("Fayl topilmadi yoki muddati o'tgan.");
+  }
+  // If browser is directly navigating to /api/files/:id without ?raw=1, redirect to clean viewer
+  if (req.headers.accept && req.headers.accept.includes('text/html') && !req.query.raw) {
+    return res.redirect(`/v/${req.params.id}`);
   }
   res.setHeader('Content-Type', item.mimeType);
   res.setHeader('Cache-Control', 'public, max-age=86400');
@@ -1147,7 +1376,7 @@ interface CatalogDevice {
   rating: number;
 }
 
-// Comprehensive Master Catalog with Samsung, Apple, Honor, Poco, Redmi, Lenovo, Asus, etc.
+// Comprehensive Master Catalog with Samsung, Apple, Honor, Poco, Redmi, Lenovo, Asus, HP, Acer, Apple MacBooks
 const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
   // ==================== SAMSUNG ====================
   {
@@ -1228,6 +1457,25 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
   },
   {
     brand: 'Samsung',
+    model: 'Samsung Galaxy A25 5G',
+    deviceType: 'Telefon',
+    badge: '120Hz AMOLED & OIS Arzon Narxda',
+    approxPriceUsd: 220,
+    specs: {
+      cpu: 'Exynos 1280 (5nm 8 yadro)',
+      gpu: 'Mali-G68',
+      ram: '6GB / 8GB',
+      storage: '128GB / 256GB + MicroSD',
+      display: '6.5" Super AMOLED 120Hz 1000 nit',
+      battery: '5000 mAh, 25W tez zaryad',
+    },
+    pros: ['50MP OIS optik barqarorlik', '120Hz ravon AMOLED ekran', 'Stereo dinamiklar va 3.5mm quloqchin tirqishi'],
+    cons: ['Tomchi shaklidagi kamera tirqishi', 'Zaryadlovchi qutida yo\'q'],
+    bestFor: 'Arzonroq narxda OIS kamera va 120Hz Super AMOLED izlaganlar',
+    rating: 4.7,
+  },
+  {
+    brand: 'Samsung',
     model: 'Samsung Galaxy A15 5G',
     deviceType: 'Telefon',
     badge: 'Eng Arzon Ishonchli Samsung',
@@ -1244,6 +1492,25 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
     cons: ['Ekran hoshiyasidagi "tomchi" tirqish', 'Zaryadlash adapteri qutida yo\'q'],
     bestFor: 'Kattalar, maktab o\'quvchilari, taksi haydovchilari va kundalik muloqot',
     rating: 4.65,
+  },
+  {
+    brand: 'Samsung',
+    model: 'Samsung Galaxy A05s',
+    deviceType: 'Telefon',
+    badge: 'Eng Hamyonbop Ishonchli Tanlov',
+    approxPriceUsd: 130,
+    specs: {
+      cpu: 'Snapdragon 680 (6nm)',
+      gpu: 'Adreno 610',
+      ram: '4GB / 6GB',
+      storage: '64GB / 128GB + MicroSD',
+      display: '6.7" FHD+ 90Hz PLS LCD',
+      battery: '5000 mAh, 25W zaryad',
+    },
+    pros: ['Snapdragon barqaror protsessori', 'Katta 6.7 dyuymli FHD+ ekran', 'Uzoq xizmat qiladigan Samsung yig\'ilishi'],
+    cons: ['Ekran AMOLED emas, IPS', 'NFC yo\'q'],
+    bestFor: 'Minimal xarajat bilan yangi ishonchli telefon xarid qilmoqchi bo\'lganlar',
+    rating: 4.55,
   },
 
   // ==================== APPLE ====================
@@ -1287,6 +1554,25 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
   },
   {
     brand: 'Apple',
+    model: 'Apple iPhone 14 128GB',
+    deviceType: 'Telefon',
+    badge: 'Barqaror & Sifatli iPhone',
+    approxPriceUsd: 620,
+    specs: {
+      cpu: 'Apple A15 Bionic (5 yadro GPU)',
+      gpu: 'Apple 5-core GPU',
+      ram: '6GB RAM',
+      storage: '128GB NVMe',
+      display: '6.1" Super Retina XDR OLED 800 nit',
+      battery: '3279 mAh, MagSafe',
+    },
+    pros: ['Action Mode video stabilizatsiyasi — qo\'lda yugurib ham qaltiramasdan oladi', '6GB operativ xotira (iPhone 13 dan ko\'proq)', 'Mukammal avtonomiya'],
+    cons: ['Ekran 60Hz', 'Lightning port'],
+    bestFor: 'Bloging, mobil video montaj va uzoq yillar xizmat qiladigan iPhone',
+    rating: 4.85,
+  },
+  {
+    brand: 'Apple',
     model: 'Apple iPhone 13 128GB',
     deviceType: 'Telefon',
     badge: 'Narx/Sifat Bo\'yicha Xit Apple',
@@ -1303,6 +1589,44 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
     cons: ['Ekran 60Hz', 'Lightning port (Type-C emas)'],
     bestFor: 'Arzonroq narxda haqiqiy sifatli iPhone tajribasini istaganlar',
     rating: 4.8,
+  },
+  {
+    brand: 'Apple',
+    model: 'Apple iPhone 12 128GB (Rasmiy / Tiklangan)',
+    deviceType: 'Telefon',
+    badge: 'Eng Hamyonbop 5G OLED iPhone',
+    approxPriceUsd: 340,
+    specs: {
+      cpu: 'Apple A14 Bionic (5nm)',
+      gpu: 'Apple 4-core GPU',
+      ram: '4GB',
+      storage: '128GB NVMe',
+      display: '6.1" Super Retina XDR OLED (Ceramic Shield)',
+      battery: '2815 mAh, MagSafe, 20W',
+    },
+    pros: ['Tiniq OLED displey va 5G tezlik', 'To\'g\'ri burchakli klassik dizayn', 'Eng so\'nggi iOS 18 ga to\'liq yangilanadi'],
+    cons: ['Batareya sig\'imi zamonaviylardan kichikroq', 'Ekran 60Hz'],
+    bestFor: 'Kam xarajat bilan haqiqiy Apple ekotizimiga kirishni istaganlar',
+    rating: 4.65,
+  },
+  {
+    brand: 'Apple',
+    model: 'Apple iPhone 11 128GB',
+    deviceType: 'Telefon',
+    badge: 'Xalq iPhone Tanlovi',
+    approxPriceUsd: 260,
+    specs: {
+      cpu: 'Apple A13 Bionic (7nm)',
+      gpu: 'Apple 4-core GPU',
+      ram: '4GB',
+      storage: '128GB',
+      display: '6.1" Liquid Retina HD',
+      battery: '3110 mAh, 18W',
+    },
+    pros: ['Juda arzon narxda 4K 60fps sifatli video olish imkoniyati', 'Chidamli korpus va ishonchli Face ID', 'Hali ham iOS tizimi silliq ishlaydi'],
+    cons: ['IPS ekran va qalinroq ramkalar', '5G mavjud emas (4G LTE)'],
+    bestFor: 'Talabalar, Instagram/TikTok uchun sifatli video oluvchi kam byudjet egalari',
+    rating: 4.6,
   },
 
   // ==================== HONOR ====================
@@ -1327,6 +1651,25 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
   },
   {
     brand: 'Honor',
+    model: 'Honor 200 Pro 5G',
+    deviceType: 'Telefon',
+    badge: 'Studio Harcourt Master & 8s Gen 3',
+    approxPriceUsd: 560,
+    specs: {
+      cpu: 'Snapdragon 8s Gen 3 (4nm)',
+      gpu: 'Adreno 735',
+      ram: '12GB / 16GB',
+      storage: '512GB',
+      display: '6.78" 1.5K 120Hz OLED 4000 nit (3840Hz nol-miltillash)',
+      battery: '5200 mAh Silicon-Carbon, 100W simli + 66W simsiz',
+    },
+    pros: ['Studio Harcourt Parij professional portret rejimi', 'Simsiz 66W zaryadlash va 100W tezkor zaryad', 'Snapdragon 8s Gen 3 kuchli protsessori'],
+    cons: ['Kamera orolchasi g\'alati shaklga ega', 'Stereo dinamiklar ovozi o\'rtacha'],
+    bestFor: 'Fotosurat ishqibozlari, blogerlar va yuqori quvvat talab qiluvchilar',
+    rating: 4.9,
+  },
+  {
+    brand: 'Honor',
     model: 'Honor 200 5G',
     deviceType: 'Telefon',
     badge: 'Studio Harcourt Portret Mutaxassisi',
@@ -1346,6 +1689,25 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
   },
   {
     brand: 'Honor',
+    model: 'Honor 200 Lite 5G',
+    deviceType: 'Telefon',
+    badge: '108MP Kamera & Ultra Nafis 6.78mm',
+    approxPriceUsd: 220,
+    specs: {
+      cpu: 'MediaTek Dimensity 6080 (6nm)',
+      gpu: 'Mali-G57 MC2',
+      ram: '8GB (+8GB Turbo RAM)',
+      storage: '256GB',
+      display: '6.7" FHD+ AMOLED 90Hz 2000 nit',
+      battery: '4500 mAh, 35W SuperCharge',
+    },
+    pros: ['108MP tiniq kamera va 50MP selfi old kamera', 'Vazni bor-yo\'g\'i 166g va qalinligi 6.78mm (juda qulay)', '3240Hz ko\'z asrash texnologiyasi'],
+    cons: ['Batareya sig\'imi 4500 mAh', 'Stereo dinamik yo\'q'],
+    bestFor: 'Yengil, nafis telefon, selfi va chiroyli dizayn xohlovchilar',
+    rating: 4.75,
+  },
+  {
+    brand: 'Honor',
     model: 'Honor X9b 5G',
     deviceType: 'Telefon',
     badge: 'Sinmas Ekran (Ultra-Bounce Bardoshli)',
@@ -1362,6 +1724,25 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
     cons: ['Kamerada optik OIS yo\'q', 'Pastki dinamik bitta (mono)'],
     bestFor: 'Kuryerlar, harakatchan insonlar, qurilmani tez tushirib yuboruvchilar va sayohatchilar',
     rating: 4.8,
+  },
+  {
+    brand: 'Honor',
+    model: 'Honor X7b',
+    deviceType: 'Telefon',
+    badge: '6000 mAh Gigant Batareya',
+    approxPriceUsd: 165,
+    specs: {
+      cpu: 'Snapdragon 680 (6nm)',
+      gpu: 'Adreno 610',
+      ram: '8GB',
+      storage: '256GB + MicroSD',
+      display: '6.8" 90Hz FHD+ IPS 850 nit',
+      battery: '6000 mAh (3 kungacha bemalol yetadi), 35W',
+    },
+    pros: ['6000 mAh ulkan batareya — eng uzoq ishlovchi telefonlardan biri', '108MP asosiy kamera va stereo karnaylar', '256GB katta xotira qulay narxda'],
+    cons: ['Ekran IPS (AMOLED emas)', 'Og\'ir 3D o\'yinlarga mos emas'],
+    bestFor: 'Taksi haydovchilari (Yandex), kuryerlar, qariyalar va doimiy aloqa',
+    rating: 4.7,
   },
 
   // ==================== POCO ====================
@@ -1386,6 +1767,25 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
   },
   {
     brand: 'Poco',
+    model: 'Poco F6 5G',
+    deviceType: 'Telefon',
+    badge: 'Snapdragon 8s Gen 3 Flagman Kuch',
+    approxPriceUsd: 370,
+    specs: {
+      cpu: 'Snapdragon 8s Gen 3 (4nm)',
+      gpu: 'Adreno 735',
+      ram: '12GB LPDDR5X',
+      storage: '512GB UFS 4.0',
+      display: '6.67" 1.5K 120Hz AMOLED (CrystalRes, 2400 nit)',
+      battery: '5000 mAh, 90W tez zaryad (30 daqiqa)',
+    },
+    pros: ['AnTuTu 1.5M+ eng so\'nggi Snapdragon 8s Gen 3 chipi', '50MP Sony IMX882 OIS asosiy kamera', '90W zaryad adapteri qutida mavjud'],
+    cons: ['Plastik orqa qopqoq', 'Optik zoom kamerasi yo\'q'],
+    bestFor: 'Kuchli o\'yinlar (Genshin, Warzone), maksimal unumdorlik va uzoq yillik tezlik',
+    rating: 4.9,
+  },
+  {
+    brand: 'Poco',
     model: 'Poco X6 Pro 5G',
     deviceType: 'Telefon',
     badge: 'O\'yinlar Qiroli (AnTuTu 1.4M+)',
@@ -1405,6 +1805,25 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
   },
   {
     brand: 'Poco',
+    model: 'Poco X6 5G',
+    deviceType: 'Telefon',
+    badge: 'Balansli 1.5K AMOLED & OIS',
+    approxPriceUsd: 245,
+    specs: {
+      cpu: 'Snapdragon 7s Gen 2 (4nm)',
+      gpu: 'Adreno 710',
+      ram: '8GB / 12GB',
+      storage: '256GB / 512GB',
+      display: '6.67" 1.5K 120Hz AMOLED (Victus himoyasi)',
+      battery: '5100 mAh, 67W tez zaryad',
+    },
+    pros: ['64MP OIS kamera va 1.5K ajoyib ekran', '5100 mAh kattaroq batareya', 'Snapdragon arxitekturasi'],
+    cons: ['O\'yinlarda Pro modelidek reaktiv emas', 'Plastik hoshiya'],
+    bestFor: 'Kundalik ishlar, YouTube, ijtimoiy tarmoqlar va o\'rtacha o\'yinlar',
+    rating: 4.75,
+  },
+  {
+    brand: 'Poco',
     model: 'Poco M6 Pro 4G',
     deviceType: 'Telefon',
     badge: 'Eng Tejamkor 120Hz AMOLED & OIS',
@@ -1421,6 +1840,25 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
     cons: ['5G tarmog\'ini qo\'llab-quvvatlamaydi', 'Og\'ir 3D o\'yinlarda o\'rtacha grafik'],
     bestFor: 'Byudjetni tejagan holda 120Hz AMOLED va tez zaryad olishni istaganlar',
     rating: 4.75,
+  },
+  {
+    brand: 'Poco',
+    model: 'Poco C65',
+    deviceType: 'Telefon',
+    badge: 'Super Tejamkor Boshlang\'ich Smartfon',
+    approxPriceUsd: 120,
+    specs: {
+      cpu: 'MediaTek Helio G85 (12nm)',
+      gpu: 'Mali-G52 MC2',
+      ram: '6GB / 8GB',
+      storage: '128GB / 256GB + MicroSD',
+      display: '6.74" 90Hz HD+ IPS',
+      battery: '5000 mAh, 18W',
+    },
+    pros: ['Arzon narxda 8GB gacha RAM va 256GB xotira', 'Katta 90Hz ekran va 50MP kamera', '3.5mm quloqchin va FM radio'],
+    cons: ['Ekran aniqligi HD+ (FHD emas)', 'Sekinroq zaryadlanadi'],
+    bestFor: 'Minimal xarajat, ikkinchi ish telefoni yoki bolalar uchun darsga',
+    rating: 4.5,
   },
 
   // ==================== REDMI / XIAOMI ====================
@@ -1464,7 +1902,45 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
   },
   {
     brand: 'Redmi',
-    model: 'Redmi 13 4G / 5G',
+    model: 'Redmi Note 13 Pro 4G',
+    deviceType: 'Telefon',
+    badge: '200MP Kamera Hamyonbop Narxda',
+    approxPriceUsd: 235,
+    specs: {
+      cpu: 'MediaTek Helio G99-Ultra (6nm)',
+      gpu: 'Mali-G57 MC2',
+      ram: '8GB / 12GB',
+      storage: '256GB / 512GB + MicroSD',
+      display: '6.67" FHD+ 120Hz AMOLED (Gorilla Glass 5)',
+      battery: '5000 mAh, 67W tez zaryad (adapter qutida)',
+    },
+    pros: ['200MP OIS optik barqarorlikli ultra yuqori aniqlikdagi kamera', 'Ingichka to\'g\'ri ramkalar va yorqin AMOLED ekran', 'MicroSD xotira kartasi va 3.5mm tirqish mavjud'],
+    cons: ['5G tarmog\'i yo\'q', 'Og\'ir o\'yinlar o\'rtacha grafikada'],
+    bestFor: 'Suratga olishni yaxshi ko\'radigan, sifatli kamera va arzon narx izlaganlar',
+    rating: 4.8,
+  },
+  {
+    brand: 'Redmi',
+    model: 'Redmi Note 13 4G',
+    deviceType: 'Telefon',
+    badge: 'Xalq Smartfoni (108MP AMOLED)',
+    approxPriceUsd: 175,
+    specs: {
+      cpu: 'Snapdragon 685 (6nm)',
+      gpu: 'Adreno 610',
+      ram: '8GB LPDDR4X',
+      storage: '128GB / 256GB',
+      display: '6.67" FHD+ 120Hz AMOLED 1800 nit',
+      battery: '5000 mAh, 33W tez zaryad',
+    },
+    pros: ['108MP asosiy kamera va juda yupqa ekran ramkalari', '120Hz AMOLED yorqin displey', 'Snapdragon ishonchli va sovuq ishlaydi'],
+    cons: ['Og\'ir 3D o\'yinlarda past-o\'rta grafik', 'Stereo dinamiklar o\'rtacha'],
+    bestFor: 'Talabalar, ofis xodimlari, ijtimoiy tarmoqlar va sifatli displey',
+    rating: 4.75,
+  },
+  {
+    brand: 'Redmi',
+    model: 'Redmi 13 4G',
     deviceType: 'Telefon',
     badge: 'Eng Hamyonbop Xaridorgir Tanlov',
     approxPriceUsd: 145,
@@ -1481,8 +1957,179 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
     bestFor: 'O\'qish, darslar, taksi, kuryerlik, ijtimoiy tarmoqlar va messenjerlar',
     rating: 4.65,
   },
+  {
+    brand: 'Redmi',
+    model: 'Redmi 13C',
+    deviceType: 'Telefon',
+    badge: 'Super Arzon Xalq Tanlovi',
+    approxPriceUsd: 120,
+    specs: {
+      cpu: 'MediaTek Helio G85',
+      gpu: 'Mali-G52 MC2',
+      ram: '6GB / 8GB',
+      storage: '128GB / 256GB',
+      display: '6.74" 90Hz HD+ IPS',
+      battery: '5000 mAh, 18W',
+    },
+    pros: ['Ushbu narxda eng ishonchli Xiaomi ekotizimi', 'Katta ekran va bardoshli batareya', 'Zamonaviy nozik korpus'],
+    cons: ['HD+ ekran', '10W adapter keladi'],
+    bestFor: 'Eng arzon narxda ishonchli telefon qidirayotganlar',
+    rating: 4.5,
+  },
 
-  // ==================== LAPTOPS (LENOVO, ASUS, APPLE, ACER, HP) ====================
+  // ==================== LAPTOPS (LENOVO, ASUS, HP, ACER, APPLE) ====================
+  {
+    brand: 'HP',
+    model: 'HP 15s / 250 G9',
+    deviceType: 'Noutbuk',
+    badge: 'Eng Hamyonbop Ish & O\'qish Noutbuki',
+    approxPriceUsd: 370,
+    specs: {
+      cpu: 'Intel Core i3-1215U (6 yadro, 4.4 GHz)',
+      gpu: 'Intel UHD Graphics',
+      ram: '8GB / 16GB DDR4',
+      storage: '512GB PCIe NVMe SSD',
+      display: '15.6" FHD (1920x1080) IPS Antiglare',
+      battery: '41Wh, 45W adapter, 6-7 soat ish',
+    },
+    pros: ['Tezkor NVMe SSD va 6 yadroli yangi Core i3 protsessor', '1.69 kg yengil va ixcham korpus', 'Qulay klaviatura raqamli blok bilan'],
+    cons: ['Korpus to\'liq plastik', 'Alohida videokarta yo\'q (faqat yengil o\'yinlar)'],
+    bestFor: 'Maktab o\'quvchilari, talabalar, ofis hujjatlari (Word, Excel), buxgalteriya (1C)',
+    rating: 4.65,
+  },
+  {
+    brand: 'Acer',
+    model: 'Acer Aspire 3 15',
+    deviceType: 'Noutbuk',
+    badge: 'Tejamkor & Kuchli Ryzen Protsessor',
+    approxPriceUsd: 390,
+    specs: {
+      cpu: 'AMD Ryzen 5 7520U (4 yadro, 8 oqim)',
+      gpu: 'AMD Radeon 610M Graphics',
+      ram: '16GB LPDDR5 5500MHz',
+      storage: '512GB PCIe NVMe SSD',
+      display: '15.6" FHD ComfyView IPS 250 nit',
+      battery: '40Wh, 8 soatgacha ofis rejimi',
+    },
+    pros: ['16GB ultra-tezkor LPDDR5 operativ xotira ushbu narxda kamyob', 'Sovuq va tejamkor Ryzen arxitekturasi', 'Yaxshi sovutish tizimi va shovqinsiz ishlash'],
+    cons: ['Ekran rang qamrovi 60% sRGB', 'Klaviatura yoritgichi yo\'q'],
+    bestFor: 'Talabalar, internet ko\'rish, dasturlash asoslari (HTML/CSS, Python) va ofis',
+    rating: 4.7,
+  },
+  {
+    brand: 'Asus',
+    model: 'Asus Vivobook Go 15',
+    deviceType: 'Noutbuk',
+    badge: 'Nafis & Yengil Talabalar Tanlovi',
+    approxPriceUsd: 420,
+    specs: {
+      cpu: 'AMD Ryzen 5 7520U / Intel Core i3-N305',
+      gpu: 'AMD Radeon 610M',
+      ram: '16GB LPDDR5',
+      storage: '512GB NVMe M.2 SSD',
+      display: '15.6" FHD NanoEdge (ingichka hoshiya)',
+      battery: '42Wh, 65W tez zaryad (49 daqiqada 60%)',
+    },
+    pros: ['180 daraja ochiluvchi nafis displey', 'Kamera himoya pardasi (Webcam privacy shutter)', '1.63 kg yengil va qulay tashib yurish'],
+    cons: ['Plastik korpus', 'Og\'ir o\'yinlarga mo\'ljallanmagan'],
+    bestFor: 'Safarda yuruvchilar, darslar, Zoom konferensiyalar va kundalik ishlar',
+    rating: 4.7,
+  },
+  {
+    brand: 'Lenovo',
+    model: 'Lenovo IdeaPad Slim 3 15',
+    deviceType: 'Noutbuk',
+    badge: 'Eng Ommabop 16GB RAM Laptop',
+    approxPriceUsd: 430,
+    specs: {
+      cpu: 'Intel Core i5-12450H (8 yadro, 12 oqim)',
+      gpu: 'Intel UHD Graphics',
+      ram: '16GB LPDDR5',
+      storage: '512GB NVMe PCIe 4.0 SSD',
+      display: '15.6" FHD IPS 300 nit',
+      battery: '47Wh, 65W Type-C tez zaryad',
+    },
+    pros: ['Juda arzon narxda 16GB RAM va Core i5 H-seriyali kuchli protsessor', '1.62 kg yengil va nafis korpus', 'Qulay klaviatura va tezkor SSD xotira'],
+    cons: ['Diskret videokarta yo\'q (og\'ir o\'yinlar uchun emas)', 'Plastik korpus'],
+    bestFor: 'O\'qish, darslar, buxgalteriya (1C), ofis ishlari, dasturlash va kundalik vazifalar',
+    rating: 4.75,
+  },
+  {
+    brand: 'Asus',
+    model: 'Asus Vivobook 15 OLED',
+    deviceType: 'Noutbuk',
+    badge: 'Eng Go\'zal OLED Ranglar Ekran',
+    approxPriceUsd: 620,
+    specs: {
+      cpu: 'Intel Core i5-13500H (12 yadro) / Ryzen 7',
+      gpu: 'Intel Iris Xe Graphics',
+      ram: '16GB DDR4',
+      storage: '512GB NVMe SSD',
+      display: '15.6" 2.8K 120Hz OLED 600 nit (100% DCI-P3 rang qamrovi)',
+      battery: '50Wh, 65W ixcham Type-C adapter',
+    },
+    pros: ['Kino darajasidagi haqiqiy qora rang va 100% DCI-P3 rang aniqligi', 'Photoshop, Illustrator, Figma dizayn ishlari uchun ideal', '1.6 kg yengil va nozik korpus'],
+    cons: ['Alohida o\'yin videokartasi yo\'q (og\'ir 3D o\'yinlarga mos emas)', 'OLED ekranni quyoshda ehtiyotlab ishlatish lozim'],
+    bestFor: 'Grafik dizaynerlar, illyustratorlar, fotograflar va multimedia ishqibozlari',
+    rating: 4.85,
+  },
+  {
+    brand: 'Acer',
+    model: 'Acer Nitro V 15 (2024)',
+    deviceType: 'Noutbuk',
+    badge: 'Eng Arzon RTX 4050 Gaming Laptop',
+    approxPriceUsd: 680,
+    specs: {
+      cpu: 'Intel Core i5-13420H (8 yadro, 12 oqim)',
+      gpu: 'NVIDIA GeForce RTX 4050 6GB GDDR6 (75W TGP)',
+      ram: '16GB DDR5 5200MHz',
+      storage: '512GB NVMe PCIe 4.0 SSD',
+      display: '15.6" FHD 144Hz IPS 16:9',
+      battery: '57Wh, 135W adapter',
+    },
+    pros: ['Ushbu narxda kuchli RTX 4050 videokarta va DLSS 3.5 qo\'llab-quvvatlash', 'Ikki ventilyatorli NitroSense sovutish boshqaruvi', 'Thunderbolt 4 porti mavjud'],
+    cons: ['Ekran rang qamrovi 62.5% sRGB', 'Yuklama ostida ventilyator ovozi'],
+    bestFor: 'Arzon narxda CS2, Dota 2, GTA V, PUBG va Cyberpunk o\'ynash, montaj',
+    rating: 4.85,
+  },
+  {
+    brand: 'HP',
+    model: 'HP Victus 15 Gaming',
+    deviceType: 'Noutbuk',
+    badge: 'Nafis Dizaynli O\'yin & IT Laptop',
+    approxPriceUsd: 690,
+    specs: {
+      cpu: 'AMD Ryzen 5 7535HS / Intel Core i5-13420H',
+      gpu: 'NVIDIA GeForce RTX 4050 6GB GDDR6',
+      ram: '16GB DDR5',
+      storage: '512GB NVMe PCIe Gen4 SSD',
+      display: '15.6" FHD 144Hz IPS Antiglare',
+      battery: '70Wh katta batareya, 200W adapter',
+    },
+    pros: ['Oddiy ofis noutbukiga o\'xshash sokin, bosiq dizayn', 'RTX 4050 va 70Wh nisbatan katta batareya', 'Dasturlash va montajda qizib ketmaydi'],
+    cons: ['Ekran yorqinligi 250 nit', 'Klaviatura bitta oq rangda yonadi (RGB emas)'],
+    bestFor: 'Universitetga olib boruvchi talabalar, dasturchilar va geymerlar',
+    rating: 4.85,
+  },
+  {
+    brand: 'Asus',
+    model: 'Asus TUF Gaming A15',
+    deviceType: 'Noutbuk',
+    badge: 'Harbiy Standartdagi Bardoshli Laptop',
+    approxPriceUsd: 760,
+    specs: {
+      cpu: 'AMD Ryzen 5 7535HS (6 yadro, 12 oqim)',
+      gpu: 'NVIDIA GeForce RTX 4050 6GB GDDR6 (140W max TGP)',
+      ram: '16GB DDR5 4800MHz',
+      storage: '512GB PCIe 4.0 SSD',
+      display: '15.6" FHD 144Hz G-Sync IPS',
+      battery: '90Wh rekord sig\'imli batareya (ofisda 6-7 soat)',
+    },
+    pros: ['MIL-STD-810H harbiy sinovlardan o\'tgan bardoshli korpus', '90Wh katta sig\'imli batareya gaming noutbuklar orasida kamdan-kam uchraydi', 'Qulay RGB klaviatura va zarbaga chidamlilik'],
+    cons: ['Ekran rang qamrovi 65% sRGB', 'Ventilyatorlar og\'ir yuklamada shovqin chiqaradi'],
+    bestFor: 'Doimiy safarda yuruvchilar, talabalar va mustahkam kompyuter qidirayotganlar',
+    rating: 4.88,
+  },
   {
     brand: 'Lenovo',
     model: 'Lenovo LOQ 15 (2024 / 2025 Edition)',
@@ -1494,13 +2141,70 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
       gpu: 'NVIDIA GeForce RTX 4050 6GB GDDR6 (95W TGP)',
       ram: '16GB DDR5 4800MHz (32GB gacha kengaytiriladi)',
       storage: '512GB NVMe PCIe 4.0 SSD',
-      display: '15.6" FHD 144Hz IPS 100% sRGB 300 nit',
+      display: '15.6" FHD 144Hz IPS 100% sRGB 300 nit G-Sync',
       battery: '60Wh, 170W adapter (Super Rapid Charge)',
     },
-    pros: ['Kuchli RTX 4050 videokarta va HX seriyali kuchli protsessor', 'Ikki ventilyatorli mukammal sovuq sovutish tizimi', 'Dasturlash (Docker, Android Studio, Python) va montaj uchun a\'lo'],
+    pros: ['Kuchli RTX 4050 videokarta va HX seriyali kuchli protsessor', '100% sRGB rang aniqligi yuqori ekran (montaj uchun ideal)', 'Ikki ventilyatorli mukammal sovuq sovutish tizimi'],
     cons: ['Vazni 2.38 kg', 'Batareya quvvati o\'rtacha 3-4 soat'],
     bestFor: 'Dasturchilar, talabalar, kiber-sport o\'yinchilari va Premier Pro montajchilari',
+    rating: 4.92,
+  },
+  {
+    brand: 'Lenovo',
+    model: 'Lenovo ThinkPad E16 Gen 2',
+    deviceType: 'Noutbuk',
+    badge: 'Afsonaviy IT Dasturchilar Noutbuki',
+    approxPriceUsd: 790,
+    specs: {
+      cpu: 'AMD Ryzen 7 7735HS (8 yadro, 16 oqim) / Intel Core Ultra 5',
+      gpu: 'AMD Radeon 680M',
+      ram: '16GB / 32GB DDR5 (64GB gacha kengaytiriladi)',
+      storage: '512GB / 1TB NVMe PCIe 4.0 SSD',
+      display: '16.0" WUXGA (1920x1200) 16:10 IPS 300 nit',
+      battery: '57Wh, 65W Type-C adapter, 8-10 soat',
+    },
+    pros: ['Dunyodagi eng qulay ergonomik ThinkPad klaviaturasi (kod yozish uchun tengsiz)', 'Harbiy standartdagi metall-kompozit korpus', 'Kengaytirish oson (2 ta RAM sloti, 2 ta SSD sloti)'],
+    cons: ['O\'yin videokartasi yo\'q', 'Klassik qora korpus'],
+    bestFor: 'Backend/Frontend dasturchilar, ma\'lumotlar tahlilchilari, tizim administratorlari',
     rating: 4.9,
+  },
+  {
+    brand: 'Apple',
+    model: 'Apple MacBook Air 13.6" M2 (16GB RAM)',
+    deviceType: 'Noutbuk',
+    badge: 'Avtonomiya & Portativlik Qiroli',
+    approxPriceUsd: 940,
+    specs: {
+      cpu: 'Apple M2 Chip (8 yadro CPU, 8 yadro GPU)',
+      gpu: 'Apple 8-core GPU (ProRes tezlatgich)',
+      ram: '16GB Unified Memory',
+      storage: '256GB / 512GB SSD',
+      display: '13.6" Liquid Retina Display (500 nit, P3 Wide color)',
+      battery: '52.6Wh (18 soatgacha toza avtonom ishlash)',
+    },
+    pros: ['18 soatgacha batareya — kun bo\'yi zaryadlovchisiz ishlaydi', 'Mutlaqo shovqinsiz (ventilyatorsiz sovutish)', '1.24 kg o\'ta yengil alyuminiy korpus va ajoyib touchpad'],
+    cons: ['Windows o\'yinlarini o\'ynab bo\'lmaydi', 'Faqat 2 ta Type-C Thunderbolt porti'],
+    bestFor: 'Dasturchilar (Web, Frontend, Backend, iOS), talabalar, biznesmenlar va sayohatchilar',
+    rating: 4.95,
+  },
+  {
+    brand: 'Apple',
+    model: 'Apple MacBook Air 15" M3 (16GB RAM)',
+    deviceType: 'Noutbuk',
+    badge: 'Katta Ekranli Yengil MacBook',
+    approxPriceUsd: 1240,
+    specs: {
+      cpu: 'Apple M3 Chip (3nm, 8 yadro CPU, 10 yadro GPU)',
+      gpu: 'Apple 10-core GPU (Hardware Ray Tracing)',
+      ram: '16GB Unified Memory',
+      storage: '512GB SSD',
+      display: '15.3" Liquid Retina 500 nit P3 Wide',
+      battery: '66.5Wh (18 soat avtonomiya), 6 qator karnay',
+    },
+    pros: ['15.3 dyuymli katta va yorqin ekran', 'Yangi Apple M3 chipi va 6 ta studiya darajasidagi karnay', '1.51 kg vazn bilan katta ekranlar orasida eng yengili'],
+    cons: ['Sovutish ventilyatorsiz (uzoq og\'ir 3D yuklamada qiziydi)', 'Yuqoriroq narx'],
+    bestFor: 'Katta ekranda kod yozish, matnlar, jadval tahlillari va yengil video montaj',
+    rating: 4.93,
   },
   {
     brand: 'Lenovo',
@@ -1523,127 +2227,144 @@ const MASTER_DEVICE_CATALOG: CatalogDevice[] = [
   },
   {
     brand: 'Asus',
-    model: 'Asus TUF Gaming A15',
+    model: 'Asus ROG Strix G16 (2024)',
     deviceType: 'Noutbuk',
-    badge: 'Harbiy Standartdagi Bardoshli Laptop',
-    approxPriceUsd: 760,
+    badge: 'Kiber-Sport Flagmani (RTX 4070)',
+    approxPriceUsd: 1380,
     specs: {
-      cpu: 'AMD Ryzen 5 7535HS (6 yadro, 12 oqim)',
-      gpu: 'NVIDIA GeForce RTX 4050 6GB GDDR6',
-      ram: '16GB DDR5',
-      storage: '512GB PCIe 4.0 SSD',
-      display: '15.6" FHD 144Hz G-Sync IPS',
-      battery: '90Wh rekord sig\'imli batareya (ofisda 6-7 soat)',
+      cpu: 'Intel Core i7-13650HX (14 yadro, 20 oqim)',
+      gpu: 'NVIDIA GeForce RTX 4070 8GB GDDR6 (140W TGP)',
+      ram: '16GB / 32GB DDR5',
+      storage: '1TB PCIe 4.0 SSD',
+      display: '16.0" FHD+ 165Hz ROG Nebula Display (100% sRGB)',
+      battery: '90Wh batareya, 280W adapter',
     },
-    pros: ['MIL-STD-810H harbiy sinovlardan o\'tgan bardoshli korpus', '90Wh katta sig\'imli batareya gaming noutbuklar orasida kamdan-kam uchraydi', 'Qulay RGB klaviatura va zarbaga chidamlilik'],
-    cons: ['Ekran rang qamrovi 65% sRGB', 'Ventilyatorlar og\'ir yuklamada shovqin chiqaradi'],
-    bestFor: 'Doimiy safarda yuruvchilar, talabalar va mustahkam kompyuter qidirayotganlar',
-    rating: 4.85,
-  },
-  {
-    brand: 'Asus',
-    model: 'Asus Vivobook 15 OLED',
-    deviceType: 'Noutbuk',
-    badge: 'Eng Go\'zal OLED Ranglar Ekran',
-    approxPriceUsd: 620,
-    specs: {
-      cpu: 'Intel Core i5-13500H (12 yadro) / Ryzen 7',
-      gpu: 'Intel Iris Xe Graphics',
-      ram: '16GB DDR4',
-      storage: '512GB NVMe SSD',
-      display: '15.6" 2.8K 120Hz OLED 600 nit (100% DCI-P3 rang qamrovi)',
-      battery: '50Wh, 65W ixcham Type-C adapter',
-    },
-    pros: ['Kino darajasidagi haqiqiy qora rang va 100% DCI-P3 rang aniqligi', 'Photoshop, Illustrator, Figma dizayn ishlari uchun ideal', '1.6 kg yengil va nozik korpus'],
-    cons: ['Alohida o\'yin videokartasi yo\'q (og\'ir 3D o\'yinlarga mos emas)', 'OLED ekranni quyoshda ehtiyotlab ishlatish lozim'],
-    bestFor: 'Grafik dizaynerlar, illyustratorlar, fotograflar va multimedia ishqibozlari',
-    rating: 4.8,
+    pros: ['RTX 4070 bilan har qanday o\'yinda ultra-grafika va yuqori FPS', 'Uch ventilyatorli suyuq metall sovutish tizimi', 'Aura Sync to\'liq RGB korpus yoritgichi'],
+    cons: ['Vazni 2.5 kg', 'Ixcham emas'],
+    bestFor: 'Murosa bilmaydigan geymerlar, strimerlar va og\'ir render qiluvchilar',
+    rating: 4.94,
   },
   {
     brand: 'Apple',
-    model: 'Apple MacBook Air 13.6" M2 (16GB RAM)',
+    model: 'Apple MacBook Pro 14" M3 Pro',
     deviceType: 'Noutbuk',
-    badge: 'Avtonomiya & Portativlik Qiroli',
-    approxPriceUsd: 940,
+    badge: 'Dasturiy Arxitektura & Kino Montaj Qiroli',
+    approxPriceUsd: 1850,
     specs: {
-      cpu: 'Apple M2 Chip (8 yadro CPU, 8 yadro GPU)',
-      gpu: 'Apple 8-core GPU (ProRes tezlatgich)',
-      ram: '16GB Unified Memory',
-      storage: '256GB / 512GB SSD',
-      display: '13.6" Liquid Retina Display (500 nit, P3 Wide color)',
-      battery: '52.6Wh (18 soatgacha toza avtonom ishlash)',
+      cpu: 'Apple M3 Pro Chip (11 yadro CPU, 14 yadro GPU)',
+      gpu: 'Apple 14-core GPU (ProRes hardware render)',
+      ram: '18GB Unified Memory',
+      storage: '512GB / 1TB SSD',
+      display: '14.2" Liquid Retina XDR 120Hz ProMotion 1600 nit',
+      battery: '70Wh (17 soat toza avtonomiya), MagSafe 3',
     },
-    pros: ['18 soatgacha batareya — kun bo\'yi zaryadlovchisiz ishlaydi', 'Mutlaqo shovqinsiz (ventilyatorsiz sovutish)', '1.24 kg o\'ta yengil alyuminiy korpus va ajoyib touchpad'],
-    cons: ['Windows o\'yinlarini o\'ynab bo\'lmaydi', 'Faqat 2 ta Type-C Thunderbolt porti'],
-    bestFor: 'Dasturchilar (Web, Frontend, Backend, iOS), talabalar, biznesmenlar va sayohatchilar',
-    rating: 4.95,
-  },
-  {
-    brand: 'Lenovo',
-    model: 'Lenovo IdeaPad Slim 3 15',
-    deviceType: 'Noutbuk',
-    badge: 'Eng Tejamkor O\'qish & Ish Noutbuki',
-    approxPriceUsd: 430,
-    specs: {
-      cpu: 'Intel Core i5-12450H (8 yadro, 12 oqim)',
-      gpu: 'Intel UHD Graphics',
-      ram: '16GB LPDDR5',
-      storage: '512GB NVMe PCIe 4.0 SSD',
-      display: '15.6" FHD IPS 300 nit',
-      battery: '47Wh, 65W Type-C tez zaryad',
-    },
-    pros: ['Juda arzon narxda 16GB RAM va Core i5 H-seriyali kuchli protsessor', '1.62 kg yengil va nafis korpus', 'Qulay klaviatura va tezkor SSD xotira'],
-    cons: ['Diskret videokarta yo\'q (og\'ir o\'yinlar uchun emas)', 'Plastik korpus'],
-    bestFor: 'O\'qish, darslar, buxgalteriya (1C), ofis ishlari va kundalik vazifalar',
-    rating: 4.7,
+    pros: ['1600 nit mini-LED Liquid Retina XDR ekrani dunyodagi eng yaxshisi', '18GB xotira bilan og\'ir Docker, emulyatorlar va Xcode lahzada ishlaydi', 'Sovutish tizimi deyarli eshitilmaydi'],
+    cons: ['Juda yuqori narx', 'Xotirani keyinchalik kengaytirib bo\'lmaydi'],
+    bestFor: 'Katta dasturchilar, arxitektorlar, kinomontaj ustalari va sound-prodyuserlar',
+    rating: 4.98,
   }
 ];
 
-// Smart diversified filter that guarantees inclusion of Samsung, Apple, Honor, Poco, Redmi
+// Smart diversified filter that guarantees inclusion of Samsung, Apple, Honor, Poco, Redmi and exact match to budget & task
 function filterCatalogDevices(
   budget: number,
   type: string,
   gaming: boolean,
   camera: boolean,
+  battery: boolean,
+  studyWork: boolean,
   programming: boolean,
   videoEditing: boolean,
-  preferredBrand: string = ''
+  preferredBrand: string = '',
+  customQuery: string = '',
+  strictBudget: boolean = true
 ): CatalogDevice[] {
   let list = MASTER_DEVICE_CATALOG.slice();
 
+  // Natural Language Query Extraction
+  const q = (customQuery || '').toLowerCase();
+  const isGaming = gaming || q.includes('o\'yin') || q.includes('oyun') || q.includes('game') || q.includes('pubg') || q.includes('fps') || q.includes('cs2') || q.includes('dota');
+  const isCamera = camera || q.includes('kamera') || q.includes('foto') || q.includes('surat') || q.includes('video') || q.includes('blog') || q.includes('leica') || q.includes('harcourt');
+  const isBattery = battery || q.includes('batareya') || q.includes('avtonom') || q.includes('quvvat') || q.includes('zaryad') || q.includes('uzoq');
+  const isStudy = studyWork || q.includes('o\'qish') || q.includes('oqish') || q.includes('maktab') || q.includes('talaba') || q.includes('kurs') || q.includes('ofis') || q.includes('buxgalter') || q.includes('1c');
+  const isProgramming = programming || q.includes('dastur') || q.includes('it') || q.includes('kod') || q.includes('program') || q.includes('developer') || q.includes('python') || q.includes('docker') || q.includes('java');
+  const isVideoEditing = videoEditing || q.includes('montaj') || q.includes('blender') || q.includes('3d') || q.includes('premier') || q.includes('photoshop') || q.includes('render');
+
   // Filter by type
-  if (type === 'phone') {
+  if (type === 'phone' || q.includes('telefon') || q.includes('smartfon')) {
     list = list.filter((d) => d.deviceType === 'Telefon');
-  } else if (type === 'laptop') {
+  } else if (type === 'laptop' || q.includes('noutbuk') || q.includes('laptop') || q.includes('kompyuter')) {
     list = list.filter((d) => d.deviceType === 'Noutbuk');
   }
 
   // Filter by brand if explicitly specified
   if (preferredBrand && preferredBrand !== 'all') {
     const bLower = preferredBrand.toLowerCase();
-    list = list.filter((d) => d.brand.toLowerCase().includes(bLower));
+    if (bLower === 'laptop') {
+      list = list.filter((d) => d.deviceType === 'Noutbuk');
+    } else {
+      list = list.filter((d) => d.brand.toLowerCase().includes(bLower));
+    }
   }
 
-  // Score each device
+  // Budget Filter Logic: "Aytgan narxingacha" (Devices up to user's stated price)
   const scored = list.map((dev) => {
     let score = 100;
-    const priceDiff = Math.abs(dev.approxPriceUsd - budget);
-    score -= priceDiff * 0.15; // Closer to budget gets higher score
+    const diff = dev.approxPriceUsd - budget;
 
-    if (gaming) {
-      if (dev.badge.toLowerCase().includes('o\'yin') || dev.badge.toLowerCase().includes('gaming')) score += 40;
-      if (dev.specs.gpu.toLowerCase().includes('rtx') || dev.specs.gpu.toLowerCase().includes('mali g615') || dev.specs.cpu.includes('8300')) score += 30;
+    if (dev.approxPriceUsd <= budget) {
+      // Direct match under budget: highest priority!
+      score += 80;
+      // Rewarding devices that offer maximum specs for this budget (e.g. 70%-100% of budget)
+      const proximity = dev.approxPriceUsd / budget;
+      score += proximity * 30;
+    } else {
+      // Over budget: penalize based on how much it exceeds the stated price
+      const overAmount = diff;
+      if (overAmount <= budget * 0.15) {
+        // Minor tolerance (+15% max)
+        score -= overAmount * 0.5;
+      } else {
+        // Drastically penalize devices far over user's budget so they don't appear
+        score -= 200 + overAmount * 2;
+      }
     }
-    if (camera) {
-      if (dev.badge.toLowerCase().includes('kamera') || dev.badge.toLowerCase().includes('leica') || dev.badge.toLowerCase().includes('portret')) score += 40;
-      if (dev.brand === 'Apple' || dev.brand === 'Honor' || dev.model.includes('14T') || dev.model.includes('Ultra')) score += 25;
+
+    // Task Matching: "Aytgan ishingiz uchun"
+    if (isGaming) {
+      if (dev.badge.toLowerCase().includes('o\'yin') || dev.badge.toLowerCase().includes('gaming') || dev.badge.toLowerCase().includes('kiber')) score += 50;
+      if (dev.specs.gpu.toLowerCase().includes('rtx') || dev.specs.gpu.toLowerCase().includes('mali g615') || dev.specs.cpu.includes('8300') || dev.specs.cpu.includes('8 Gen')) score += 40;
+      if (dev.specs.display.includes('144Hz') || dev.specs.display.includes('120Hz') || dev.specs.display.includes('165Hz')) score += 20;
     }
-    if (programming) {
-      if (dev.deviceType === 'Noutbuk') score += 50;
-      if (dev.specs.ram.includes('16GB') || dev.specs.cpu.includes('HX') || dev.specs.cpu.includes('M2')) score += 30;
+
+    if (isCamera) {
+      if (dev.badge.toLowerCase().includes('kamera') || dev.badge.toLowerCase().includes('leica') || dev.badge.toLowerCase().includes('portret') || dev.badge.toLowerCase().includes('dxomark')) score += 50;
+      if (dev.pros.some(p => p.toLowerCase().includes('kamera') || p.toLowerCase().includes('ois') || p.toLowerCase().includes('optik') || p.toLowerCase().includes('zoom'))) score += 35;
+      if (dev.brand === 'Apple' || dev.brand === 'Honor') score += 20;
     }
-    if (videoEditing) {
-      if (dev.specs.gpu.includes('RTX') || dev.specs.cpu.includes('M2') || dev.model.includes('Pro')) score += 35;
+
+    if (isProgramming) {
+      if (dev.deviceType === 'Noutbuk') score += 60;
+      if (dev.specs.ram.includes('16GB') || dev.specs.ram.includes('18GB') || dev.specs.ram.includes('32GB')) score += 45;
+      if (dev.specs.cpu.includes('HX') || dev.specs.cpu.includes('M2') || dev.specs.cpu.includes('M3') || dev.specs.cpu.includes('Ryzen 7')) score += 35;
+      if (dev.badge.includes('IT') || dev.badge.includes('ThinkPad')) score += 30;
+    }
+
+    if (isVideoEditing) {
+      if (dev.specs.gpu.includes('RTX') || dev.specs.cpu.includes('M2') || dev.specs.cpu.includes('M3')) score += 55;
+      if (dev.specs.display.includes('OLED') || dev.specs.display.includes('100% sRGB') || dev.specs.display.includes('Retina') || dev.specs.display.includes('2.5K') || dev.specs.display.includes('2.8K')) score += 40;
+      if (dev.model.includes('Pro') || dev.model.includes('Ultra')) score += 25;
+    }
+
+    if (isStudy) {
+      if (dev.approxPriceUsd <= 500) score += 40;
+      if (dev.pros.some(p => p.toLowerCase().includes('yengil') || p.toLowerCase().includes('avtonom') || p.toLowerCase().includes('ofis'))) score += 30;
+      if (dev.bestFor.toLowerCase().includes('talaba') || dev.bestFor.toLowerCase().includes('o\'qish')) score += 35;
+    }
+
+    if (isBattery) {
+      if (dev.specs.battery.includes('5800') || dev.specs.battery.includes('6000') || dev.specs.battery.includes('90Wh') || dev.specs.battery.includes('18 soat')) score += 55;
+      if (dev.pros.some(p => p.toLowerCase().includes('batareya') || p.toLowerCase().includes('avtonom'))) score += 35;
     }
 
     return { dev, score };
@@ -1651,15 +2372,18 @@ function filterCatalogDevices(
 
   scored.sort((a, b) => b.score - a.score);
 
-  // Ensure diversity: ensure Samsung, Apple, Honor, Poco, Redmi are in the top picks if phones are requested
+  // Filter out any devices with severely negative scores (massively over budget)
+  const eligible = scored.filter(item => item.score > -50);
+
+  // Guarantee Brand and Category Diversity
   const result: CatalogDevice[] = [];
   const addedModels = new Set<string>();
 
-  // If phones are included, try to pick the best from each major brand first
+  // If phones are requested, guarantee diversity across top brands (Samsung, Apple, Honor, Poco, Redmi) within budget
   if (type === 'both' || type === 'phone') {
     const targetBrands = ['Samsung', 'Apple', 'Honor', 'Poco', 'Redmi'];
     for (const brand of targetBrands) {
-      const match = scored.find((item) => item.dev.brand === brand && item.dev.deviceType === 'Telefon' && !addedModels.has(item.dev.model));
+      const match = eligible.find((item) => item.dev.brand === brand && item.dev.deviceType === 'Telefon' && !addedModels.has(item.dev.model));
       if (match) {
         result.push(match.dev);
         addedModels.add(match.dev.model);
@@ -1667,22 +2391,27 @@ function filterCatalogDevices(
     }
   }
 
-  // If laptops are included, pick top 2-3 laptops
+  // If laptops are requested, pick top laptops matching criteria
   if (type === 'both' || type === 'laptop') {
-    const laptopMatches = scored.filter((item) => item.dev.deviceType === 'Noutbuk' && !addedModels.has(item.dev.model));
-    for (let i = 0; i < Math.min(3, laptopMatches.length); i++) {
+    const laptopMatches = eligible.filter((item) => item.dev.deviceType === 'Noutbuk' && !addedModels.has(item.dev.model));
+    for (let i = 0; i < Math.min(4, laptopMatches.length); i++) {
       result.push(laptopMatches[i].dev);
       addedModels.add(laptopMatches[i].dev.model);
     }
   }
 
-  // Fill up to 8-10 with remaining highest scored devices
-  for (const item of scored) {
+  // Fill up to 10 with highest scoring remaining eligible devices
+  for (const item of eligible) {
     if (!addedModels.has(item.dev.model)) {
       result.push(item.dev);
       addedModels.add(item.dev.model);
       if (result.length >= 10) break;
     }
+  }
+
+  // Fallback if none found
+  if (result.length === 0) {
+    return list.slice(0, 6);
   }
 
   return result;
@@ -1703,26 +2432,51 @@ app.post('/api/ai/device-advisor', async (req, res) => {
       programming = false,
       portability = false,
       customQuery = '',
-      brand = 'all'
+      brand = 'all',
+      strictBudget = true,
     } = req.body;
 
-    // Get guaranteed diversified catalog devices
-    const catalogMatches = filterCatalogDevices(budget, type, gaming, camera, programming, videoEditing, brand);
+    // Get guaranteed diversified catalog devices strictly matching budget and work tasks
+    const catalogMatches = filterCatalogDevices(
+      budget,
+      type,
+      gaming,
+      camera,
+      battery,
+      studyWork,
+      programming,
+      videoEditing,
+      brand,
+      customQuery,
+      strictBudget
+    );
 
     // Generate dynamic intelligent expert summary based on user goals and matched devices
     const topDevs = catalogMatches.slice(0, 3).map(d => `${d.brand} ${d.model}`).join(', ');
     let finalSummary = '';
 
-    if (gaming) {
-      finalSummary = `$${budget} budjetda og'ir o'yinlar (PUBG, CoD, Genshin) uchun eng yuqori FPS va kuchli sovutish tizimiga ega ${topDevs} yetakchilik qiladi.`;
-    } else if (camera) {
-      finalSummary = `$${budget} budjetda fotosurat va video bloging uchun professional optika, OIS va sun'iy intellektli ishlov berishga ega ${topDevs} eng yaxshi tanlovdir.`;
-    } else if (programming) {
-      finalSummary = `Dasturlash (IT), kompilyatsiya va ko'p vazifalilik uchun kamida 16GB tezkor xotira va ko'p yadroli protsessorga ega ${topDevs} a'lo darajada xizmat qiladi.`;
-    } else if (videoEditing) {
-      finalSummary = `Video montaj va grafik dizayn (Premier Pro, Photoshop, Blender) uchun kuchli videokarta va rang aniqligi yuqori ekranli ${topDevs} tavsiya etiladi.`;
+    const q = (customQuery || '').toLowerCase();
+    const isGaming = gaming || q.includes('o\'yin') || q.includes('pubg') || q.includes('game');
+    const isCamera = camera || q.includes('kamera') || q.includes('foto');
+    const isProgramming = programming || q.includes('dastur') || q.includes('kod') || q.includes('it');
+    const isVideoEditing = videoEditing || q.includes('montaj') || q.includes('blender') || q.includes('3d');
+    const isBattery = battery || q.includes('batareya') || q.includes('avtonom');
+    const isStudy = studyWork || q.includes('o\'qish') || q.includes('maktab') || q.includes('talaba');
+
+    if (isGaming) {
+      finalSummary = `$${budget} budjet doirasida og'ir o'yinlar (PUBG, CoD, Genshin, CS2) uchun eng yuqori FPS va samarali sovutishga ega ${topDevs} mutlaq yetakchilik qiladi.`;
+    } else if (isCamera) {
+      finalSummary = `$${budget} budjetda fotosurat va video bloging uchun professional optika, OIS optik barqarorlik va sun'iy intellektli rang uzatishga ega ${topDevs} eng yaxshi variantdir.`;
+    } else if (isProgramming) {
+      finalSummary = `Dasturlash (IT), kompilyatsiya va Docker/Android Studio uchun 16GB+ tezkor xotira va ko'p yadroli protsessorga ega ${topDevs} a'lo darajada xizmat qiladi.`;
+    } else if (isVideoEditing) {
+      finalSummary = `Video montaj va grafik dizayn (Premier Pro, Photoshop, Blender) uchun diskret videokarta va rang aniqligi yuqori ekranli ${topDevs} tavsiya etiladi.`;
+    } else if (isBattery) {
+      finalSummary = `Uzoq vaqt quvvatsiz ishlash (avtonomiya) talabingiz bo'yicha katta sig'imli batareya va tejamkor chipli ${topDevs} tanlandi.`;
+    } else if (isStudy) {
+      finalSummary = `$${budget} budjetda o'qish, talabalik va ofis ishlari (Word, Excel, Zoom, 1C) uchun eng qulay va uzoq yillar xizmat qiluvchi ${topDevs} saralab berildi.`;
     } else {
-      finalSummary = `$${budget} budjetingiz uchun Samsung, Apple, Honor, Poco, Redmi va noutbuklar qatoridan ${catalogMatches.length} ta eng yaxshi va sinalgan variant saralab berildi.`;
+      finalSummary = `$${budget} budjetingiz bo'yicha Samsung, Apple, Honor, Poco, Redmi va noutbuklar qatoridan ${catalogMatches.length} ta aynan sizning narxingizga mos sinalgan modellar saralandi.`;
     }
 
     logActivity('Device Advisor', 'success', `Budjet: $${budget}, turi: ${type}, qurilmalar: ${catalogMatches.length} ta`);
@@ -1733,7 +2487,7 @@ app.post('/api/ai/device-advisor', async (req, res) => {
   } catch (error: any) {
     console.error("Device Advisor error:", error);
     logActivity('Device Advisor', 'error', error.message || 'Xatolik');
-    const catalogMatches = filterCatalogDevices(500, 'both', false, false, false, false);
+    const catalogMatches = filterCatalogDevices(500, 'both', false, false, false, false, false, false);
     res.json({
       summary: "Tavsiyalar katalogimizdan saralab berildi.",
       devices: catalogMatches,

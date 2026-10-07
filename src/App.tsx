@@ -14,7 +14,7 @@ import { OCRTool } from './tools/OCRTool';
 import { ImageEditor } from './tools/ImageEditor';
 import { FontStudio } from './tools/FontStudio';
 import { PDFTools } from './tools/PDFTools';
-import { UniversalCalculator } from './tools/UniversalCalculator';
+import { ResumeBuilder } from './tools/ResumeBuilder';
 import { TranslatorAI } from './tools/TranslatorAI';
 import { DeviceAdvisor } from './tools/DeviceAdvisor';
 import { TextTools } from './tools/TextTools';
@@ -128,7 +128,7 @@ export default function App() {
       case 'image_editor': return <ImageEditor />;
       case 'font_studio': return <FontStudio />;
       case 'pdf_tools': return <PDFTools />;
-      case 'calculator': return <UniversalCalculator />;
+      case 'resume_builder': return <ResumeBuilder />;
       case 'translator': return <TranslatorAI />;
       case 'device_advisor': return <DeviceAdvisor />;
       case 'text_tools': return <TextTools />;

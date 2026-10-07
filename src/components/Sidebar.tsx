@@ -5,7 +5,6 @@ import {
   QrCode,
   FileText,
   Image as ImageIcon,
-  Calculator,
   Code,
   ShieldCheck,
   Star,
@@ -20,7 +19,8 @@ import {
   ArrowRightLeft,
   SlidersHorizontal,
   Settings,
-  Barcode
+  Barcode,
+  Briefcase
 } from 'lucide-react';
 import { ToolCategory, ToolDefinition } from '../types';
 import { CATEGORIES, TOOLS_LIST } from '../utils/toolsData';
@@ -53,7 +53,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       case 'qr_barcode': return <QrCode className="w-4 h-4 text-emerald-500" />;
       case 'documents': return <FileText className="w-4 h-4 text-blue-500" />;
       case 'image': return <ImageIcon className="w-4 h-4 text-rose-500" />;
-      case 'calculators': return <Calculator className="w-4 h-4 text-amber-500" />;
       case 'developer': return <Code className="w-4 h-4 text-cyan-500" />;
       case 'security': return <ShieldCheck className="w-4 h-4 text-emerald-600" />;
       default: return <LayoutGrid className="w-4 h-4" />;
@@ -70,10 +69,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       case 'Image': return <ImageIcon className="w-3.5 h-3.5" />;
       case 'Barcode': return <Barcode className="w-3.5 h-3.5" />;
       case 'Files': return <Files className="w-3.5 h-3.5" />;
+      case 'Briefcase': return <Briefcase className="w-3.5 h-3.5 text-indigo-500" />;
       case 'PenTool': return <PenTool className="w-3.5 h-3.5" />;
       case 'ArrowRightLeft': return <ArrowRightLeft className="w-3.5 h-3.5" />;
       case 'SlidersHorizontal': return <SlidersHorizontal className="w-3.5 h-3.5" />;
-      case 'Calculator': return <Calculator className="w-3.5 h-3.5" />;
       case 'Code': return <Code className="w-3.5 h-3.5" />;
       case 'Palette': return <Sparkles className="w-3.5 h-3.5" />;
       case 'ShieldCheck': return <ShieldCheck className="w-3.5 h-3.5" />;

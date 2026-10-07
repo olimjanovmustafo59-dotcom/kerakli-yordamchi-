@@ -77,6 +77,15 @@ export const TOOLS_LIST: ToolDefinition[] = [
     tags: ['pdf', 'merge', 'split', 'birlashtirish', 'kesish', 'convert', 'hujjat'],
   },
   {
+    id: 'resume_builder',
+    name: 'Rezyume / CV Yaratuvchi',
+    shortDesc: 'Zamonaviy, professional va A4 PDF formatida tayyor rezyume yaratish',
+    category: 'documents',
+    iconName: 'Briefcase',
+    badge: 'Yangi Imkoniyat',
+    tags: ['rezyume', 'cv', 'resume', 'ish', 'vakansiya', 'anketa', 'pdf cv', 'portfolio'],
+  },
+  {
     id: 'font_studio',
     name: 'Handwriting / Font Studio',
     shortDesc: 'Qo\'lyozma, imzo uslubi va zamonaviy kreativ shriftlarda matn yaratish va eksport',
@@ -102,17 +111,6 @@ export const TOOLS_LIST: ToolDefinition[] = [
     category: 'image',
     iconName: 'SlidersHorizontal',
     tags: ['rasm', 'editor', 'crop', 'resize', 'filter', 'fon', 'background', 'photo'],
-  },
-
-  // Calculators
-  {
-    id: 'calculator',
-    name: 'Universal Kalkulyator',
-    shortDesc: 'Oddiy, Muhandislik (Sin, Cos, Ln), Moliya (Kredit, Foiz), Sana, O\'lchov va Qurilish',
-    category: 'calculators',
-    iconName: 'Calculator',
-    badge: 'Ko\'p yo\'nalishli',
-    tags: ['kalkulyator', 'calculator', 'moliya', 'kredit', 'sana', 'yosh', 'converter', 'qurilish', 'kafel'],
   },
 
   // Developer & Text
@@ -162,7 +160,6 @@ export const CATEGORIES = [
   { id: 'qr_barcode', label: 'QR & Barkod', icon: 'QrCode' },
   { id: 'documents', label: 'Hujjatlar & PDF', icon: 'FileText' },
   { id: 'image', label: 'Rasm & Grafika', icon: 'Image' },
-  { id: 'calculators', label: 'Kalkulyatorlar', icon: 'Calculator' },
   { id: 'developer', label: 'Dasturchi vositalari', icon: 'Code' },
   { id: 'security', label: 'Xavfsizlik', icon: 'ShieldCheck' },
 ];

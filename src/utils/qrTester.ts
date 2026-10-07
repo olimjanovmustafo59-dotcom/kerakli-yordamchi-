@@ -17,10 +17,20 @@ export function testQRScannability(canvas: HTMLCanvasElement): QRScanTestResult 
       return { isScannable: true };
     }
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+    // Scan the square QR area (width x width) so bottom frame does not distort the scan box
+    const scanSize = Math.min(canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, scanSize, scanSize);
+    let code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: 'attemptBoth',
     });
+
+    if (!code && canvas.height !== canvas.width) {
+      // Fallback: try full canvas
+      const fullData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      code = jsQR(fullData.data, fullData.width, fullData.height, {
+        inversionAttempts: 'attemptBoth',
+      });
+    }
 
     if (code && code.data) {
       return {

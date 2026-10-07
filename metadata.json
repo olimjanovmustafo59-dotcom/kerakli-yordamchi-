@@ -1,6 +1,6 @@
 {
   "name": "SmartTools AI",
-  "description": "Universal ko'p funksiyali AI va utility vositalar platformasi: QR Code Pro, Barcode, Document AI, OCR, Image Editor, PDF Tools, Universal Kalkulyator, Translator AI, Qurilma Maslahatchisi va boshqalar.",
+  "description": "Universal ko'p funksiyali AI va utility vositalar platformasi: QR Code Pro, Rezyume / CV Yaratuvchi, Barcode, Document AI, OCR, Image Editor, PDF Tools, Translator AI, Qurilma Maslahatchisi.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

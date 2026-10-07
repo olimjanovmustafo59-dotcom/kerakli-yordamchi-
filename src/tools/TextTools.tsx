@@ -7,7 +7,8 @@ import {
   Sparkles,
   FileCode,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 
 type TextSubTool =
@@ -21,9 +22,7 @@ type TextSubTool =
 
 export const TextTools: React.FC = () => {
   const [activeSub, setActiveSub] = useState<TextSubTool>('stats_case');
-  const [text, setText] = useState<string>(
-    "SmartTools AI ko'p funksiyali platformasi yordamida matnlarni tahlil qilish, JSON tekshirish va kodlash juda oson!"
-  );
+  const [text, setText] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
 
   // Find & Replace
@@ -31,9 +30,7 @@ export const TextTools: React.FC = () => {
   const [replaceWord, setReplaceWord] = useState<string>('');
 
   // JSON state
-  const [jsonInput, setJsonInput] = useState<string>(
-    JSON.stringify({ project: "SmartTools AI", version: 2.5, features: ["QR", "OCR", "PDF", "Calculator"] }, null, 2)
-  );
+  const [jsonInput, setJsonInput] = useState<string>('');
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   // Lorem state
@@ -238,12 +235,25 @@ export const TextTools: React.FC = () => {
             <button onClick={() => handleCase('kebab')} className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold font-mono">kebab-case</button>
           </div>
 
-          <textarea
-            rows={8}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="w-full text-xs p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-          />
+          <div className="relative">
+            <textarea
+              rows={8}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Matnni shu yerga kiriting yoki joylang..."
+              className="w-full text-xs p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-cyan-500/20"
+            />
+            {text && (
+              <button
+                type="button"
+                onClick={() => setText('')}
+                className="absolute right-3 bottom-3 flex items-center gap-1 text-[11px] font-semibold text-rose-500 hover:text-rose-600 bg-white/90 dark:bg-slate-900/90 px-2 py-1 rounded-lg border border-rose-200 dark:border-rose-900/50 shadow-xs"
+              >
+                <Trash2 className="w-3 h-3" />
+                Tozalash
+              </button>
+            )}
+          </div>
         </div>
       )}
 

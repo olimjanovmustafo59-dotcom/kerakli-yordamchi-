@@ -9,7 +9,9 @@ import {
   Link,
   Minimize2,
   Info,
-  ExternalLink
+  ExternalLink,
+  Eye,
+  Sparkles
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
@@ -23,6 +25,7 @@ export const ImageToQR: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [centerLogo, setCenterLogo] = useState<boolean>(true);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const QR_BYTE_LIMIT = 2950; // Maximum byte capacity for QR Version 40 (Binary)
@@ -46,7 +49,7 @@ export const ImageToQR: React.FC = () => {
         // If file is tiny, can embed directly; otherwise upload to backend hosting for real public URL
         if (file.size <= QR_BYTE_LIMIT) {
           setMode('compressed_data');
-          generateQR(dataUrl);
+          generateQR(dataUrl, dataUrl);
         } else {
           setMode('url');
           // Upload to backend hosting to get real accessible URL
@@ -61,10 +64,11 @@ export const ImageToQR: React.FC = () => {
               }),
             });
             const uploadJson = await uploadRes.json();
-            if (uploadJson.url) {
-              const fullUrl = window.location.origin + uploadJson.url;
+            const targetPath = uploadJson.viewUrl || uploadJson.url;
+            if (targetPath) {
+              const fullUrl = window.location.origin + targetPath;
               setCustomUrl(fullUrl);
-              generateQR(fullUrl);
+              generateQR(fullUrl, dataUrl);
             } else {
               throw new Error("Havola yaratishda xatolik");
             }
@@ -89,7 +93,7 @@ export const ImageToQR: React.FC = () => {
 
     const img = new Image();
     img.onload = () => {
-      // Scale down to tiny thumbnail (e.g. 50x50) and high-compression JPEG
+      // Scale down to tiny thumbnail (e.g. 52x52) and high-compression JPEG
       const canvas = document.createElement('canvas');
       const maxDim = 52;
       const scale = Math.min(maxDim / img.width, maxDim / img.height);
@@ -102,27 +106,61 @@ export const ImageToQR: React.FC = () => {
 
       const tinyDataUrl = canvas.toDataURL('image/jpeg', 0.4);
       setMode('compressed_data');
-      generateQR(tinyDataUrl);
+      generateQR(tinyDataUrl, selectedImage);
       setIsCompressing(false);
     };
     img.src = selectedImage;
   };
 
-  const generateQR = async (valueToEncode: string) => {
+  const generateQR = async (valueToEncode: string, logoSrc?: string) => {
     setErrorNotice(null);
     try {
       const canvas = canvasRef.current;
       if (!canvas) return;
       await QRCode.toCanvas(canvas, valueToEncode, {
-        width: 450,
+        width: 480,
         margin: 2,
-        errorCorrectionLevel: 'M',
+        errorCorrectionLevel: 'H', // High error correction allows logo badge without scan error
         color: {
           dark: '#0f172a',
           light: '#ffffff',
         },
       });
-      setQrCodeUrl(canvas.toDataURL());
+
+      const effectiveLogo = logoSrc || (centerLogo ? selectedImage : null);
+      if (centerLogo && effectiveLogo) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          const badgeImg = new Image();
+          badgeImg.onload = () => {
+            const logoSize = Math.round(canvas.width * 0.22);
+            const logoX = (canvas.width - logoSize) / 2;
+            const logoY = (canvas.height - logoSize) / 2;
+
+            // White rounded frame
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.roundRect(logoX - 4, logoY - 4, logoSize + 8, logoSize + 8, 10);
+            ctx.fill();
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Clip and draw image
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(logoX, logoY, logoSize, logoSize, 8);
+            ctx.clip();
+            ctx.drawImage(badgeImg, logoX, logoY, logoSize, logoSize);
+            ctx.restore();
+
+            setQrCodeUrl(canvas.toDataURL());
+          };
+          badgeImg.src = effectiveLogo;
+        }
+      } else {
+        setQrCodeUrl(canvas.toDataURL());
+      }
     } catch (err: any) {
       console.error(err);
       setErrorNotice("QR yaratishda xatolik: Ma'lumot hajmi QR xalqaro standartidan oshib ketdi. Iltimos, havola variantidan foydalaning.");
@@ -311,6 +349,27 @@ export const ImageToQR: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Logo Center Option */}
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-200 dark:border-slate-700">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={centerLogo}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setCenterLogo(checked);
+                          if (mode === 'url' && customUrl) {
+                            generateQR(customUrl, checked ? selectedImage || undefined : undefined);
+                          } else if (selectedImage) {
+                            generateQR(selectedImage, checked ? selectedImage || undefined : undefined);
+                          }
+                        }}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span>QR markaziga rasmni (Logo) joylashtirish</span>
+                    </label>
+                  </div>
+
                   {errorNotice && (
                     <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold">
                       {errorNotice}
@@ -324,8 +383,8 @@ export const ImageToQR: React.FC = () => {
 
         {/* Live Preview Right */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center shadow-lg">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center shadow-lg space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Hosil bo'lgan Rasm QR Kodi
             </h3>
 
@@ -336,11 +395,11 @@ export const ImageToQR: React.FC = () => {
               />
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="flex gap-2">
               <button
                 onClick={downloadPNG}
                 disabled={!selectedImage && !customUrl}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 PNG Yuklab olish
@@ -348,11 +407,58 @@ export const ImageToQR: React.FC = () => {
               <button
                 onClick={downloadPDF}
                 disabled={!selectedImage && !customUrl}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 text-slate-700 dark:text-slate-300 text-xs font-semibold transition"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 text-slate-700 dark:text-slate-300 text-xs font-semibold transition cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 PDF
               </button>
+            </div>
+
+            {/* Visual Result Preview (Skanerlanganda nima chiqadi?) */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2.5 text-left">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                  Skanerlanganda ochiladigan rasm:
+                </span>
+                {customUrl && (
+                  <a
+                    href={customUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Sinov: Ochib ko'rish
+                  </a>
+                )}
+              </div>
+
+              {selectedImage ? (
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <img
+                    src={selectedImage}
+                    alt="Natija rasm"
+                    className="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-slate-700 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0 text-xs">
+                    <p className="font-bold text-slate-800 dark:text-white truncate">
+                      {mode === 'url' ? 'Yuqori sifatli Rasm Veb-Sahifasi' : 'To\'g\'ridan-to\'g\'ri Rasm (Data URI)'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                      {mode === 'url' ? customUrl : 'QR kod ichida saqlangan'}
+                    </p>
+                    <div className="mt-1 flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Skanerlanganda rasm to'liq chiqadi</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-400 italic">
+                  Rasm yuklaganingizda, skanerlanganda chiqadigan rasm ko'rinishi shu yerda aks etadi.
+                </p>
+              )}
             </div>
           </div>
         </div>

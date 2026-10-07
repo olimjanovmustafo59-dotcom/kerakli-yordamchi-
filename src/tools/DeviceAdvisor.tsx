@@ -219,6 +219,139 @@ const INITIAL_DEVICES: DeviceRecommendation[] = [
     rating: 4.85,
   },
   {
+    brand: 'Samsung',
+    model: 'Samsung Galaxy A15 5G',
+    deviceType: 'Telefon',
+    badge: 'Eng Arzon Ishonchli Samsung',
+    approxPriceUsd: 175,
+    specs: {
+      cpu: 'MediaTek Dimensity 6100+ (6nm)',
+      gpu: 'Mali-G57 MC2',
+      ram: '6GB / 8GB',
+      storage: '128GB + MicroSD',
+      display: '6.5" Super AMOLED 90Hz FHD+ 800 nit',
+      battery: '5000 mAh, 25W',
+    },
+    pros: ['Ushbu narxda Super AMOLED yorqin ekran', '50MP tiniq suratlar oluvchi kamera', 'Katta sig\'imli 5000 mAh batareya'],
+    cons: ['Tomchi tirqish', 'Zaryadlash adapteri qutida yo\'q'],
+    bestFor: 'Maktab o\'quvchilari, taksi haydovchilari va tejamkor xarid',
+    rating: 4.65,
+  },
+  {
+    brand: 'Apple',
+    model: 'Apple iPhone 11 / 12',
+    deviceType: 'Telefon',
+    badge: 'Eng Hamyonbop iOS Tanlovi',
+    approxPriceUsd: 290,
+    specs: {
+      cpu: 'Apple A13 / A14 Bionic',
+      gpu: 'Apple 4-core GPU',
+      ram: '4GB',
+      storage: '128GB NVMe',
+      display: '6.1" Liquid Retina / OLED',
+      battery: '3110 mAh, 4K 60fps',
+    },
+    pros: ['Sifatli 4K video olish va ijtimoiy tarmoqlar uchun a\'lo', 'iOS 18 bilan barqaror ishlash', 'Mustahkam korpus'],
+    cons: ['Batareya yangi modellarga qaraganda tezroq tugaydi', '60Hz ekran'],
+    bestFor: 'Kam byudjetda sifatli iPhone qidirganlar',
+    rating: 4.65,
+  },
+  {
+    brand: 'Poco',
+    model: 'Poco M6 Pro 4G',
+    deviceType: 'Telefon',
+    badge: 'Eng Tejamkor 120Hz AMOLED & OIS',
+    approxPriceUsd: 185,
+    specs: {
+      cpu: 'MediaTek Helio G99 Ultra (6nm)',
+      gpu: 'Mali-G57 MC2',
+      ram: '8GB / 12GB',
+      storage: '256GB / 512GB + MicroSD',
+      display: '6.67" FHD+ 120Hz Flow AMOLED',
+      battery: '5000 mAh, 67W tez zaryad',
+    },
+    pros: ['64MP kamerada optik OIS bor', '67W tez zaryadlovchi adapter qutida mavjud', 'Yupqa hoshiyali chiroyli 120Hz ekran'],
+    cons: ['5G tarmog\'i yo\'q', 'Og\'ir o\'yinlarda o\'rtacha grafik'],
+    bestFor: 'Byudjetni tejagan holda 120Hz AMOLED va tez zaryad olishni istaganlar',
+    rating: 4.75,
+  },
+  {
+    brand: 'Redmi',
+    model: 'Redmi 13 4G',
+    deviceType: 'Telefon',
+    badge: 'Eng Hamyonbop Xaridorgir Tanlov',
+    approxPriceUsd: 145,
+    specs: {
+      cpu: 'MediaTek Helio G91-Ultra',
+      gpu: 'Mali-G52 MC2',
+      ram: '8GB LPDDR4X',
+      storage: '256GB kengaytiriladigan',
+      display: '6.79" FHD+ 90Hz katta ekran',
+      battery: '5030 mAh, 33W tez zaryad',
+    },
+    pros: ['108MP tiniq asosiy kamera', 'Orqa paneli shishadan tayyorlangan ko\'rkam dizayn', 'Juda qulay narx va katta sig\'imli xotira'],
+    cons: ['O\'yinlar faqat past-o\'rta grafikada', 'Ekran yorqinligi quyosh ostida o\'rtacha'],
+    bestFor: 'O\'qish, darslar, taksi, kuryerlik va messenjerlar',
+    rating: 4.65,
+  },
+  {
+    brand: 'Lenovo',
+    model: 'Lenovo IdeaPad Slim 3 15',
+    deviceType: 'Noutbuk',
+    badge: 'Eng Ommabop 16GB RAM Laptop',
+    approxPriceUsd: 430,
+    specs: {
+      cpu: 'Intel Core i5-12450H (8 yadro, 12 oqim)',
+      gpu: 'Intel UHD Graphics',
+      ram: '16GB LPDDR5',
+      storage: '512GB NVMe PCIe 4.0 SSD',
+      display: '15.6" FHD IPS 300 nit',
+      battery: '47Wh, 65W Type-C tez zaryad',
+    },
+    pros: ['Juda arzon narxda 16GB RAM va Core i5 H-seriyali kuchli protsessor', '1.62 kg yengil va nafis korpus', 'Qulay klaviatura va tezkor SSD xotira'],
+    cons: ['Diskret videokarta yo\'q (og\'ir o\'yinlar uchun emas)', 'Plastik korpus'],
+    bestFor: 'O\'qish, darslar, buxgalteriya (1C), ofis ishlari, dasturlash va kundalik vazifalar',
+    rating: 4.75,
+  },
+  {
+    brand: 'HP',
+    model: 'HP 15s / 250 G9',
+    deviceType: 'Noutbuk',
+    badge: 'Eng Hamyonbop Ish & O\'qish Noutbuki',
+    approxPriceUsd: 370,
+    specs: {
+      cpu: 'Intel Core i3-1215U (6 yadro, 4.4 GHz)',
+      gpu: 'Intel UHD Graphics',
+      ram: '16GB DDR4',
+      storage: '512GB PCIe NVMe SSD',
+      display: '15.6" FHD IPS Antiglare',
+      battery: '41Wh, 45W adapter, 6-7 soat ish',
+    },
+    pros: ['Tezkor NVMe SSD va yangi 6 yadroli Core i3 protsessor', '1.69 kg yengil va ixcham korpus', 'Qulay klaviatura raqamli blok bilan'],
+    cons: ['Korpus to\'liq plastik', 'Alohida videokarta yo\'q'],
+    bestFor: 'Maktab o\'quvchilari, talabalar, ofis hujjatlari (Word, Excel), buxgalteriya (1C)',
+    rating: 4.65,
+  },
+  {
+    brand: 'Acer',
+    model: 'Acer Nitro V 15',
+    deviceType: 'Noutbuk',
+    badge: 'Eng Arzon RTX 4050 Gaming Laptop',
+    approxPriceUsd: 680,
+    specs: {
+      cpu: 'Intel Core i5-13420H (8 yadro)',
+      gpu: 'NVIDIA GeForce RTX 4050 6GB GDDR6',
+      ram: '16GB DDR5',
+      storage: '512GB NVMe PCIe 4.0 SSD',
+      display: '15.6" FHD 144Hz IPS',
+      battery: '57Wh, 135W adapter',
+    },
+    pros: ['Hamyonbop narxda RTX 4050 videokarta va DLSS 3.5', 'Ikki ventilyatorli NitroSense sovutish', 'Kiber-sport o\'yinlari va video montaj'],
+    cons: ['Ekran rang qamrovi 62.5% sRGB', 'Yuklama ostida ventilyator ovozi'],
+    bestFor: 'O\'yinlar (CS2, GTA V, PUBG), montaj va IT dasturlash',
+    rating: 4.85,
+  },
+  {
     brand: 'Apple',
     model: 'Apple MacBook Air 13.6" M2 (16GB RAM)',
     deviceType: 'Noutbuk',
@@ -241,6 +374,7 @@ const INITIAL_DEVICES: DeviceRecommendation[] = [
 
 export const DeviceAdvisor: React.FC = () => {
   const [budget, setBudget] = useState<number>(500);
+  const [strictBudget, setStrictBudget] = useState<boolean>(true);
   const [deviceType, setDeviceType] = useState<'both' | 'phone' | 'laptop'>('both');
   const [selectedBrand, setSelectedBrand] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'rating'>('recommended');
@@ -276,6 +410,7 @@ export const DeviceAdvisor: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           budget,
+          strictBudget,
           type: deviceType,
           gaming,
           camera,
@@ -294,15 +429,23 @@ export const DeviceAdvisor: React.FC = () => {
         setSummary(data.summary || '');
       } else {
         // Fallback to local catalog filter
-        setSummary(`Budjetingizga mos Samsung, Apple, Honor, Poco va Redmi qurilmalari saralandi.`);
+        setSummary(`Budjetingizga mos Samsung, Apple, Honor, Poco, Redmi va noutbuklar saralandi.`);
       }
     } catch {
       // Offline fallback
-      setSummary(`Bozordagi eng mashhur Samsung, Apple, Honor, Poco va Redmi modellari.`);
+      setSummary(`Bozordagi eng mashhur Samsung, Apple, Honor, Poco, Redmi va noutbuk modellari.`);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Auto-fetch when filters change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchRecommendations();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [budget, strictBudget, deviceType, gaming, camera, battery, studyWork, videoEditing, programming, selectedBrand]);
 
   // Trigger search on submit or filters change
   const handleSubmit = (e?: React.FormEvent) => {
@@ -454,6 +597,38 @@ export const DeviceAdvisor: React.FC = () => {
               <span>$1000</span>
               <span>$2000+</span>
             </div>
+
+            {/* Quick budget presets */}
+            <div className="flex flex-wrap items-center gap-1 mt-2">
+              <span className="text-[10px] font-bold text-slate-400">Tezkor:</span>
+              {[180, 300, 450, 650, 800, 1200].map((bVal) => (
+                <button
+                  type="button"
+                  key={bVal}
+                  onClick={() => setBudget(bVal)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition ${
+                    budget === bVal
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  ${bVal}
+                </button>
+              ))}
+            </div>
+
+            {/* Strict budget toggle: "Aytgan narxingizgacha" */}
+            <label className="flex items-center gap-1.5 mt-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={strictBudget}
+                onChange={(e) => setStrictBudget(e.target.checked)}
+                className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                Faqat shu narxgacha (oshmasin)
+              </span>
+            </label>
           </div>
 
           {/* Device Type Selector */}
@@ -607,9 +782,20 @@ export const DeviceAdvisor: React.FC = () => {
                       {dev.badge}
                     </span>
                   </div>
-                  <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
-                    ~${dev.approxPriceUsd}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 block">
+                      ~${dev.approxPriceUsd}
+                    </span>
+                    {dev.approxPriceUsd <= budget ? (
+                      <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        {dev.approxPriceUsd === budget ? 'Aynan budjetingiz' : `$${budget - dev.approxPriceUsd} tejaysiz`}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-amber-500">
+                        +${dev.approxPriceUsd - budget}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-start justify-between gap-2">

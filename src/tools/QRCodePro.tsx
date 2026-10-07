@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
+import jsQR from 'jsqr';
 import {
   QrCode,
   Download,
@@ -21,18 +22,29 @@ import {
   FileText,
   Sliders,
   Palette,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Scan,
+  Copy,
+  Check,
+  ExternalLink
 } from 'lucide-react';
 import { QRCodeConfig, QRDataType } from '../types';
 import { testQRScannability, QRScanTestResult } from '../utils/qrTester';
 
 export const QRCodePro: React.FC = () => {
+  const [mainMode, setMainMode] = useState<'create' | 'scan'>('create');
   const [dataType, setDataType] = useState<QRDataType>('url');
+
+  // Scanner state
+  const [scannedResult, setScannedResult] = useState<string | null>(null);
+  const [scanImagePreview, setScanImagePreview] = useState<string | null>(null);
+  const [scanStatus, setScanStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [copiedDecoded, setCopiedDecoded] = useState(false);
   
   // Specific inputs for data types
-  const [textValue, setTextValue] = useState('https://smarttools.uz');
-  const [wifiData, setWifiData] = useState({ ssid: 'SmartWiFi', pass: 'parol12345', enc: 'WPA', hidden: false });
-  const [phoneValue, setPhoneValue] = useState('+998901234567');
+  const [textValue, setTextValue] = useState('');
+  const [wifiData, setWifiData] = useState({ ssid: '', pass: '', enc: 'WPA', hidden: false });
+  const [phoneValue, setPhoneValue] = useState('');
   const [emailData, setEmailData] = useState({ email: 'info@smarttools.uz', subject: 'Hamkorlik', body: 'Salom, SmartTools!' });
   const [smsData, setSmsData] = useState({ phone: '+998901234567', message: 'Salom!' });
   const [vcardData, setVcardData] = useState({
@@ -91,11 +103,11 @@ export const QRCodePro: React.FC = () => {
       case 'text':
       case 'image_link':
       case 'file_link':
-        return textValue;
+        return textValue || 'https://smarttools.uz';
       case 'wifi':
-        return `WIFI:S:${wifiData.ssid};T:${wifiData.enc};P:${wifiData.pass};H:${wifiData.hidden ? 'true' : 'false'};;`;
+        return `WIFI:S:${wifiData.ssid || 'WiFi'};T:${wifiData.enc};P:${wifiData.pass || '12345678'};H:${wifiData.hidden ? 'true' : 'false'};;`;
       case 'phone':
-        return `tel:${phoneValue}`;
+        return `tel:${phoneValue || '+998901234567'}`;
       case 'email':
         return `mailto:${emailData.email}?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.body)}`;
       case 'sms':
@@ -191,7 +203,17 @@ export const QRCodePro: React.FC = () => {
                 const x = col * moduleSize;
                 const y = row * moduleSize;
 
-                if (config.dotStyle === 'dots') {
+                // Protect 3 corner finder patterns (7x7 modules) so they remain solid and 100% scannable by all devices
+                const q = config.quietZone;
+                const isFinderPattern =
+                  (row >= q && row < q + 7 && col >= q && col < q + 7) ||
+                  (row >= q && row < q + 7 && col >= moduleCount - q - 7 && col < moduleCount - q) ||
+                  (row >= moduleCount - q - 7 && row < moduleCount - q && col >= q && col < q + 7);
+
+                if (isFinderPattern) {
+                  // Solid fill for finder patterns guarantees instant detection
+                  ctx.fillRect(x, y, moduleSize, moduleSize);
+                } else if (config.dotStyle === 'dots') {
                   ctx.beginPath();
                   ctx.arc(x + moduleSize / 2, y + moduleSize / 2, moduleSize / 2.3, 0, Math.PI * 2);
                   ctx.fill();
@@ -368,6 +390,47 @@ export const QRCodePro: React.FC = () => {
     doc.save(`SmartTools-QR-${Date.now()}.pdf`);
   };
 
+  // QR Scanner / Reader implementation
+  const handleScanImage = (file: File) => {
+    setScanStatus('idle');
+    setScannedResult(null);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        setScanImagePreview(e.target?.result as string);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          setScanStatus('error');
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imgData.data, imgData.width, imgData.height, {
+          inversionAttempts: 'attemptBoth',
+        });
+        if (code && code.data) {
+          setScannedResult(code.data);
+          setScanStatus('success');
+        } else {
+          setScannedResult(null);
+          setScanStatus('error');
+        }
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedDecoded(true);
+    setTimeout(() => setCopiedDecoded(false), 2000);
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner */}
@@ -377,40 +440,193 @@ export const QRCodePro: React.FC = () => {
             <span className="p-2 rounded-xl bg-white/10 backdrop-blur-sm">
               <QrCode className="w-5 h-5 text-cyan-300" />
             </span>
-            <h2 className="text-xl font-bold">QR Code Pro</h2>
+            <h2 className="text-xl font-bold">QR Code Pro & Skaner</h2>
             <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-              Avto-Verifikatsiya
+              100% Skanerlanadi
             </span>
           </div>
           <p className="text-xs text-slate-300 mt-1 max-w-xl">
-            Wi-Fi, Kontakt (vCard), Manzil, To'lov, URL va barcha turdagi boy dizaynli QR kodlar.
-            Har bir o'zgarishda skanerlanishi avtomatik tekshirib boriladi.
+            Har qanday QR kod yaratish (Wi-Fi, URL, vCard, matn) va mavjud QR kod rasmlarini bir zumda o'qish (skanerlash).
           </p>
         </div>
 
-        {/* Scannability indicator in banner */}
-        <div className="flex items-center gap-2 self-start md:self-auto bg-black/30 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10">
-          {scanResult.isScannable ? (
-            <>
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <div>
-                <p className="text-xs font-semibold text-emerald-300">100% Skanerlanadi</p>
-                <p className="text-[10px] text-slate-400">Sinov muvaffaqiyatli</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-bounce" />
-              <div>
-                <p className="text-xs font-semibold text-amber-300">Diqqat: O'qilmaydi</p>
-                <p className="text-[10px] text-amber-200">Kontrastni oshiring</p>
-              </div>
-            </>
-          )}
+        {/* Mode Switcher */}
+        <div className="flex items-center gap-1.5 p-1 bg-black/30 backdrop-blur-md rounded-xl border border-white/10">
+          <button
+            onClick={() => setMainMode('create')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              mainMode === 'create'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Yaratish
+          </button>
+          <button
+            onClick={() => setMainMode('scan')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              mainMode === 'scan'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <Scan className="w-3.5 h-3.5" />
+            O'qish (Skaner)
+          </button>
         </div>
       </div>
 
-      {/* Main Grid: Controls Left, Live Preview Right */}
+      {/* SCANNER VIEW */}
+      {mainMode === 'scan' ? (
+        <div className="max-w-2xl mx-auto p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="text-center space-y-1">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              QR Kod Rasmini Skanerlash & Matnini O'qish
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Telefon skrinshoti yoki QR kod rasmini yuklang, tizim uni avtomatik ochib beradi.
+            </p>
+          </div>
+
+          {/* Upload Dropzone */}
+          <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition bg-slate-50/50 dark:bg-slate-800/40 hover:bg-indigo-50/20">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleScanImage(file);
+              }}
+              className="hidden"
+            />
+            <Scan className="w-10 h-10 text-indigo-500 mb-2" />
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+              QR kod rasmini tanlang yoki bu yerga tashlang
+            </span>
+            <span className="text-[11px] text-slate-400 mt-1">
+              PNG, JPG, WEBP, skrinshotlar qo'llab-quvvatlanadi
+            </span>
+          </label>
+
+          {/* Scan Preview & Result */}
+          {scanImagePreview && (
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center gap-4">
+              <img
+                src={scanImagePreview}
+                alt="QR Preview"
+                className="w-20 h-20 object-contain rounded-lg border border-slate-200 dark:border-slate-700 bg-white"
+              />
+              <div className="flex-1">
+                {scanStatus === 'success' && (
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>QR kod muvaffaqiyatli o'qildi!</span>
+                  </div>
+                )}
+                {scanStatus === 'error' && (
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>Ushbu rasmda QR kod aniqlanmadi. Iltimos, aniqroq surat yuklang.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Decoded Content Display */}
+          {scannedResult && (() => {
+            const isDirectImage = scannedResult.startsWith('data:image/');
+            const isImageUrl =
+              /\.(png|jpe?g|webp|gif|svg)($|\?)/i.test(scannedResult) ||
+              scannedResult.includes('/api/files/') ||
+              scannedResult.includes('/v/');
+            const isImageContent = isDirectImage || isImageUrl;
+            const resolvedImgSrc = isDirectImage
+              ? scannedResult
+              : scannedResult.includes('/v/')
+              ? scannedResult.replace('/v/', '/api/files/') + '?raw=1'
+              : scannedResult;
+
+            return (
+              <div className="p-5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 space-y-4">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                  QR Kod Ichidagi Ma'lumot:
+                </span>
+
+                {/* If image or image URL detected, display the image immediately! */}
+                {isImageContent && (
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-500/40 shadow-md space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <ImageIcon className="w-4 h-4" />
+                        QR Kod Ichidagi Rasm:
+                      </span>
+                      <a
+                        href={resolvedImgSrc}
+                        download="qr-rasm.png"
+                        className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Rasmni saqlab olish
+                      </a>
+                    </div>
+
+                    <div className="flex justify-center p-3 rounded-xl bg-slate-950/5 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800">
+                      <img
+                        src={resolvedImgSrc}
+                        alt="QR orqali ochilgan rasm"
+                        className="max-h-80 max-w-full object-contain rounded-xl shadow-md border border-slate-200 dark:border-slate-700"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200/60 dark:border-indigo-800/60 font-mono text-xs text-slate-900 dark:text-white break-all select-all">
+                  {scannedResult}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    onClick={() => copyToClipboard(scannedResult)}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    {copiedDecoded ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedDecoded ? "Nusxa olindi!" : "Nusxa olish"}
+                  </button>
+
+                  {(scannedResult.startsWith('http://') || scannedResult.startsWith('https://')) && (
+                    <a
+                      href={scannedResult}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Havolani ochish
+                    </a>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setTextValue(scannedResult);
+                      setMainMode('create');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ml-auto"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Yangi QR sifatida tahrirlash
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      ) : (
+      /* GENERATOR VIEW */
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Config Tabs */}
         <div className="lg:col-span-7 space-y-4">
@@ -491,24 +707,63 @@ export const QRCodePro: React.FC = () => {
               <div className="pt-2">
                 {dataType === 'url' && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Web-sayt havolasi (URL)
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Web-sayt havolasi (URL)
+                      </label>
+                      {textValue && (
+                        <button
+                          type="button"
+                          onClick={() => setTextValue('')}
+                          className="text-[11px] text-rose-500 hover:text-rose-600 font-semibold cursor-pointer"
+                        >
+                          Tozalash
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="url"
                       value={textValue}
                       onChange={(e) => setTextValue(e.target.value)}
-                      placeholder="https://example.com"
+                      placeholder="Havolani kiriting (masalan: https://t.me/kanal)..."
                       className="w-full text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">Namunalar:</span>
+                      <button
+                        type="button"
+                        onClick={() => setTextValue('https://t.me/smarttools_uz')}
+                        className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                      >
+                        Telegram
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTextValue('https://instagram.com')}
+                        className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
+                      >
+                        Instagram
+                      </button>
+                    </div>
                   </div>
                 )}
 
                 {dataType === 'text' && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Matn
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Matn
+                      </label>
+                      {textValue && (
+                        <button
+                          type="button"
+                          onClick={() => setTextValue('')}
+                          className="text-[11px] text-rose-500 hover:text-rose-600 font-semibold cursor-pointer"
+                        >
+                          Tozalash
+                        </button>
+                      )}
+                    </div>
                     <textarea
                       rows={3}
                       value={textValue}
@@ -1041,6 +1296,7 @@ export const QRCodePro: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

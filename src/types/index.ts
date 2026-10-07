@@ -4,7 +4,6 @@ export type ToolCategory =
   | 'qr_barcode'
   | 'documents'
   | 'image'
-  | 'calculators'
   | 'developer'
   | 'security';
 

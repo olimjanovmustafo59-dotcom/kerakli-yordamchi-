@@ -39,10 +39,10 @@ const FONTS: FontOption[] = [
 ];
 
 export const FontStudio: React.FC = () => {
-  const [text, setText] = useState<string>('Mustafo Olimjanov');
+  const [text, setText] = useState<string>('');
   const [selectedFont, setSelectedFont] = useState<FontOption>(FONTS[2]); // Great Vibes
   const [fontSize, setFontSize] = useState<number>(48);
-  const [textColor, setTextColor] = useState<string>('#1e1b4b');
+  const [textColor, setTextColor] = useState<string>('#6366f1');
   const [bgColor, setBgColor] = useState<string>('#ffffff');
   const [transparentBg, setTransparentBg] = useState<boolean>(true);
   const [activeCategory, setActiveCategory] = useState<string>('Barchasi');
@@ -50,6 +50,17 @@ export const FontStudio: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const categories = ['Barchasi', 'Handwriting', 'Signature-style', 'Modern', 'Professional', 'Elegant', 'Minimal', 'Monospace'];
+  const sampleSuggestions = ['Mustafo Olimjanov', 'SmartTools AI', 'Designer & Dev', 'Toshkent'];
+  const colorPresets = [
+    { label: 'Indigo', hex: '#6366f1' },
+    { label: 'Moviy', hex: '#0ea5e9' },
+    { label: 'Zumrad', hex: '#10b981' },
+    { label: 'Oltin', hex: '#f59e0b' },
+    { label: 'Oq', hex: '#ffffff' },
+    { label: 'To\'q', hex: '#0f172a' },
+    { label: 'Pushti', hex: '#ec4899' },
+    { label: 'Binafsha', hex: '#8b5cf6' },
+  ];
 
   const filteredFonts = activeCategory === 'Barchasi'
     ? FONTS
@@ -161,16 +172,40 @@ export const FontStudio: React.FC = () => {
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
             {/* Input text */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Matn yoki Ism-familiya
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Matn yoki Ism-familiya
+                </label>
+                {text && (
+                  <button
+                    type="button"
+                    onClick={() => setText('')}
+                    className="text-[11px] font-semibold text-rose-500 hover:text-rose-600"
+                  >
+                    Tozalash
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="Matn kiriting..."
-                className="w-full text-sm p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                placeholder="Yozuv yoki imzo matnini kiriting..."
+                className="w-full text-sm p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500 outline-none transition"
               />
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Namunalar:</span>
+                {sampleSuggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setText(s)}
+                    className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Category filter pills */}
@@ -229,58 +264,75 @@ export const FontStudio: React.FC = () => {
             </div>
 
             {/* Colors & Size adjustments */}
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Matn rangi
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={textColor}
-                    onChange={(e) => setTextColor(e.target.value)}
-                    className="w-8 h-8 rounded border cursor-pointer"
-                  />
-                  <span className="text-xs font-mono">{textColor}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Orqa fon
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    disabled={transparentBg}
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="w-8 h-8 rounded border cursor-pointer disabled:opacity-40"
-                  />
-                  <label className="text-[11px] text-slate-500 flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={transparentBg}
-                      onChange={(e) => setTransparentBg(e.target.checked)}
-                      className="rounded text-indigo-600"
-                    />
-                    Shaffof
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    Matn rangi
                   </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className="w-8 h-8 rounded border cursor-pointer"
+                    />
+                    <span className="text-xs font-mono">{textColor}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    Orqa fon
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      disabled={transparentBg}
+                      value={bgColor}
+                      onChange={(e) => setBgColor(e.target.value)}
+                      className="w-8 h-8 rounded border cursor-pointer disabled:opacity-40"
+                    />
+                    <label className="text-[11px] text-slate-500 flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={transparentBg}
+                        onChange={(e) => setTransparentBg(e.target.checked)}
+                        className="rounded text-indigo-600"
+                      />
+                      Shaffof
+                    </label>
+                  </div>
+                </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+                    O'lcham: {fontSize}px
+                  </label>
+                  <input
+                    type="range"
+                    min="24"
+                    max="80"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full accent-indigo-600"
+                  />
                 </div>
               </div>
 
-              <div className="col-span-2 sm:col-span-1">
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  O'lcham: {fontSize}px
-                </label>
-                <input
-                  type="range"
-                  min="24"
-                  max="80"
-                  value={fontSize}
-                  onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="w-full accent-indigo-600"
-                />
+              {/* Quick Color Presets */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Ranglar:</span>
+                {colorPresets.map((c) => (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    onClick={() => setTextColor(c.hex)}
+                    className="w-5 h-5 rounded-full border border-slate-300 dark:border-slate-600 transition hover:scale-110 shadow-xs"
+                    style={{ backgroundColor: c.hex }}
+                    title={c.label}
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -313,7 +365,7 @@ export const FontStudio: React.FC = () => {
                 }}
                 className="text-center select-all break-words max-w-full"
               >
-                {text || 'Matn kiriting'}
+                {text || <span className="opacity-40 italic">Matningizni shu yerda ko'rasiz...</span>}
               </p>
             </div>
 

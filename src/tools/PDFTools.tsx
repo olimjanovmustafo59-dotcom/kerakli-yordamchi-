@@ -54,7 +54,7 @@ export const PDFTools: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Split state
-  const [splitRange, setSplitRange] = useState<string>('1-2');
+  const [splitRange, setSplitRange] = useState<string>('');
 
   // Rotate state
   const [rotationAngle, setRotationAngle] = useState<number>(90);
@@ -73,9 +73,7 @@ export const PDFTools: React.FC = () => {
   const [imageFiles, setImageFiles] = useState<Array<{ name: string; dataUrl: string }>>([]);
 
   // Text to PDF state
-  const [inputText, setInputText] = useState<string>(
-    'Bu yerga PDF ga aylantirilishi kerak bo\'lgan matnni kiriting...'
-  );
+  const [inputText, setInputText] = useState<string>('');
 
   // PDF Preview URL
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
@@ -987,14 +985,26 @@ export const PDFTools: React.FC = () => {
         {/* 8. TEXT TO PDF */}
         {activeSubTool === 'text_to_pdf' && (
           <div className="space-y-4 max-w-xl">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              Matnni PDF ga Aylantirish (Text → PDF)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                Matnni PDF ga Aylantirish (Text → PDF)
+              </h3>
+              {inputText && (
+                <button
+                  type="button"
+                  onClick={() => setInputText('')}
+                  className="text-[11px] font-semibold text-rose-500 hover:text-rose-600"
+                >
+                  Tozalash
+                </button>
+              )}
+            </div>
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              placeholder="PDF ga aylantirilishi kerak bo'lgan matnni shu yerga yozing..."
               rows={6}
-              className="w-full text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-slate-900 dark:text-white outline-none focus:border-red-500 leading-relaxed font-sans"
+              className="w-full text-xs rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-red-500 leading-relaxed font-sans transition"
             />
             <button
               onClick={handleTextToPdf}

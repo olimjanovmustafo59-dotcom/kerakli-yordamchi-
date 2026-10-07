@@ -6,9 +6,9 @@ const ADMIN_EMAIL = 'olimjanovmustafo59@gmail.com';
 export function getRecentTools(): string[] {
   try {
     const raw = localStorage.getItem(RECENT_KEY);
-    return raw ? JSON.parse(raw) : ['qr_pro', 'pdf_tools', 'doc_ai', 'calculator'];
+    return raw ? JSON.parse(raw) : ['qr_pro', 'pdf_tools', 'doc_ai', 'device_advisor'];
   } catch {
-    return ['qr_pro', 'pdf_tools', 'doc_ai', 'calculator'];
+    return ['qr_pro', 'pdf_tools', 'doc_ai', 'device_advisor'];
   }
 }
 

@@ -12,7 +12,8 @@ import {
   AlertCircle,
   CheckCircle2,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Trash2
 } from 'lucide-react';
 
 const LANGUAGES = [
@@ -34,9 +35,7 @@ const LANGUAGES = [
 export const TranslatorAI: React.FC = () => {
   const [sourceLang, setSourceLang] = useState<string>("Avtomatik");
   const [targetLang, setTargetLang] = useState<string>("Ingliz");
-  const [sourceText, setSourceText] = useState<string>(
-    "SmartTools AI loyihasi foydalanuvchilar uchun qulay, tezkor va xavfsiz vositalar to'plamini taqdim etadi."
-  );
+  const [sourceText, setSourceText] = useState<string>('');
   const [mode, setMode] = useState<'professional' | 'simple' | 'context'>('professional');
   const [translatedText, setTranslatedText] = useState<string>('');
   const [detectedSource, setDetectedSource] = useState<string>('');
@@ -238,24 +237,39 @@ export const TranslatorAI: React.FC = () => {
             <span className="font-bold text-slate-700 dark:text-slate-300">
               Asl Matn ({sourceText.length} belgi)
             </span>
-            <label className="flex items-center gap-1 text-indigo-600 hover:underline cursor-pointer">
-              <Upload className="w-3.5 h-3.5" />
-              Fayl / Rasm yuklash
-              <input
-                type="file"
-                accept=".txt,.docx,image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
+            <div className="flex items-center gap-3">
+              {sourceText && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSourceText('');
+                    setTranslatedText('');
+                  }}
+                  className="flex items-center gap-1 text-[11px] text-rose-500 hover:text-rose-600 font-medium"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Tozalash
+                </button>
+              )}
+              <label className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+                <Upload className="w-3.5 h-3.5" />
+                Fayl yuklash
+                <input
+                  type="file"
+                  accept=".txt,.docx,image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
 
           <textarea
             rows={10}
             value={sourceText}
             onChange={(e) => setSourceText(e.target.value)}
-            placeholder="Tarjima qilinadigan matnni kiriting..."
-            className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 text-slate-900 dark:text-white outline-none resize-none leading-relaxed"
+            placeholder="Tarjima qilish uchun matnni shu yerga yozing yoki fayl yuklang..."
+            className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none resize-none leading-relaxed transition"
           />
 
           <div className="flex items-center justify-between pt-2">

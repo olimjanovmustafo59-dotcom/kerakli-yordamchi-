@@ -15,7 +15,7 @@ import { BarcodeConfig, BarcodeFormat } from '../types';
 
 export const BarcodeGenerator: React.FC = () => {
   const [format, setFormat] = useState<BarcodeFormat>('CODE128');
-  const [value, setValue] = useState('SMART-2026-PRO');
+  const [value, setValue] = useState('');
   const [lineColor, setLineColor] = useState('#0f172a');
   const [background, setBackground] = useState('#ffffff');
   const [width, setWidth] = useState(2);
@@ -32,7 +32,7 @@ export const BarcodeGenerator: React.FC = () => {
   // Validate format and value strictly
   const validateBarcode = (fmt: BarcodeFormat, val: string): string | null => {
     if (!val || val.trim() === '') {
-      return "Shtrix-kod uchun qiymat kiritilishi shart.";
+      return null;
     }
 
     switch (fmt) {
@@ -74,6 +74,12 @@ export const BarcodeGenerator: React.FC = () => {
 
   // Render Barcode
   useEffect(() => {
+    if (!value || !value.trim()) {
+      setValidationError(null);
+      if (svgRef.current) svgRef.current.innerHTML = '';
+      return;
+    }
+
     const errorMsg = validateBarcode(format, value);
     setValidationError(errorMsg);
 
@@ -249,13 +255,48 @@ export const BarcodeGenerator: React.FC = () => {
                 type="text"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder="Qiymatni kiriting..."
+                placeholder="Qiymatni kiriting (masalan: 123456789012)..."
                 className={`w-full text-xs font-mono p-3 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 transition ${
                   validationError
                     ? 'border-rose-400 focus:ring-rose-400 bg-rose-50/20'
                     : 'border-slate-300 dark:border-slate-700 focus:ring-indigo-500'
                 }`}
               />
+
+              {/* Sample presets and Clear */}
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Namunalar:</span>
+                <button
+                  type="button"
+                  onClick={() => { setFormat('CODE128'); setValue('SMART-2026-PRO'); }}
+                  className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+                >
+                  Code128
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setFormat('EAN13'); setValue('478000123456'); }}
+                  className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+                >
+                  EAN-13
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setFormat('UPC'); setValue('012345678905'); }}
+                  className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+                >
+                  UPC-A
+                </button>
+                {value && (
+                  <button
+                    type="button"
+                    onClick={() => setValue('')}
+                    className="text-[10px] px-2 py-0.5 rounded-md text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 font-semibold transition"
+                  >
+                    Tozalash
+                  </button>
+                )}
+              </div>
 
               {/* Validation Message */}
               {validationError ? (
@@ -265,12 +306,12 @@ export const BarcodeGenerator: React.FC = () => {
                     <span className="font-bold">Format talabi buzildi:</span> {validationError}
                   </div>
                 </div>
-              ) : (
+              ) : value.trim() ? (
                 <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Ushbu format va qiymat xalqaro standartga to'liq mos keladi.
                 </div>
-              )}
+              ) : null}
             </div>
 
             {/* Customization options */}
@@ -385,7 +426,12 @@ export const BarcodeGenerator: React.FC = () => {
             </h3>
 
             <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex items-center justify-center min-h-[200px] overflow-x-auto">
-              {!validationError ? (
+              {!value.trim() ? (
+                <div className="text-slate-400 dark:text-slate-500 text-xs flex flex-col items-center gap-2 py-6">
+                  <BarcodeIcon className="w-10 h-10 opacity-35" />
+                  <span>Shtrix-kod yaratish uchun chap tomonda qiymat kiriting</span>
+                </div>
+              ) : !validationError ? (
                 <svg ref={svgRef} className="max-w-full h-auto" />
               ) : (
                 <div className="text-rose-500 text-xs flex flex-col items-center gap-2">
